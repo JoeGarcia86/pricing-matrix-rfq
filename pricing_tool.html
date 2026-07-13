@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Unisco Pricing &amp; RFQ Tool</title>
+<style>
+  :root {
+    color-scheme: light;
+    --navy:#1F4E78; --navy-dk:#153651; --accent:#2E86AB; --green:#1e8e5a; --amber:#b8860b; --red:#c0392b;
+    --bg:#f5f7fa; --card:#ffffff; --border:#dde3ea; --text:#1c2733; --muted:#5c6b7a;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family: "Segoe UI", Arial, sans-serif; font-size:14px; }
+  header { background:linear-gradient(90deg,var(--navy),var(--navy-dk)); color:#fff; padding:16px 22px; }
+  header h1 { margin:0; font-size:19px; }
+  header p { margin:4px 0 0; font-size:12.5px; color:#cfe0ec; }
+  nav.tabs { display:flex; flex-wrap:wrap; background:#fff; border-bottom:2px solid var(--border); position:sticky; top:0; z-index:5; }
+  nav.tabs button { flex:1 1 auto; padding:11px 10px; border:none; background:transparent; cursor:pointer; font-size:13px; font-weight:600; color:var(--muted); border-bottom:3px solid transparent; white-space:nowrap; }
+  nav.tabs button.active { color:var(--navy); border-bottom:3px solid var(--accent); background:#eef5fa; }
+  main { padding:18px 22px 60px; max-width:1300px; margin:0 auto; }
+  .panel { display:none; }
+  .panel.active { display:block; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px 18px; margin-bottom:16px; }
+  .card h2 { margin:0 0 4px; font-size:15px; color:var(--navy); }
+  .card .sub { color:var(--muted); font-size:12px; margin-bottom:12px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; }
+  .grid3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; }
+  label { display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:3px; }
+  input[type=text], input[type=number], input[type=date], select, textarea {
+    width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:5px; font-size:13px; background:#fff; color:var(--text);
+  }
+  textarea { resize:vertical; min-height:60px; }
+  .field { margin-bottom:10px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  button.btn { background:var(--accent); color:#fff; border:none; padding:9px 16px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; }
+  button.btn.secondary { background:#eef1f4; color:var(--navy); }
+  button.btn.danger { background:#fbe9e7; color:var(--red); }
+  button.btn:hover { opacity:0.9; }
+  table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  table th, table td { border:1px solid var(--border); padding:6px 8px; text-align:left; }
+  table th { background:#f0f4f8; color:var(--navy); font-size:11.5px; text-transform:uppercase; letter-spacing:.03em; }
+  table input { border:1px solid transparent; background:transparent; padding:2px 4px; }
+  table input:focus { border:1px solid var(--accent); background:#fff; }
+  .pill { display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:700; }
+  .pill.green { background:#e3f6ea; color:var(--green); }
+  .pill.amber { background:#fdf1dc; color:var(--amber); }
+  .pill.red { background:#fbe4e1; color:var(--red); }
+  .out-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-top:8px; }
+  .out-card { background:#eef5fa; border:1px solid #d7e8f2; border-radius:8px; padding:12px 14px; text-align:center; }
+  .out-card .val { font-size:22px; font-weight:700; color:var(--navy); }
+  .out-card .lbl { font-size:11.5px; color:var(--muted); margin-top:3px; }
+  .slider-wrap { display:flex; align-items:center; gap:14px; margin:10px 0; }
+  input[type=range] { flex:1; accent-color:var(--accent); height:6px; }
+  .slider-val { font-size:22px; font-weight:700; color:var(--accent); min-width:70px; text-align:right; }
+  .note { font-size:11.5px; color:var(--muted); }
+  .source { font-size:10.5px; color:#8a97a5; font-style:italic; }
+  .flex-between { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+  .divider { border:none; border-top:1px solid var(--border); margin:14px 0; }
+  .badge-region { font-size:11px; background:#eef1f4; padding:3px 8px; border-radius:4px; color:var(--navy); font-weight:600; }
+  #chartWrap { max-width:320px; margin:0 auto; }
+  .history-actions button { margin-right:4px; font-size:11px; padding:4px 8px; }
+  .upload-box { border:2px dashed var(--border); border-radius:8px; padding:16px; text-align:center; background:#fafcfd; }
+  .upload-box input[type=file] { margin-top:8px; }
+  .preview-box { max-height:180px; overflow:auto; background:#f7f9fb; border:1px solid var(--border); border-radius:6px; padding:8px; font-family:monospace; font-size:11px; white-space:pre-wrap; margin-top:8px; }
+  .checklist label { display:flex; align-items:center; gap:6px; font-weight:500; color:var(--text); margin-bottom:6px; }
+  .checklist input { width:auto; }
+  footer { text-align:center; color:var(--muted); font-size:11px; padding:20px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Unisco Pricing &amp; RFQ Tool</h1>
+  <p>Build a customer quote from building specs and operating volumes, benchmark it against regional &amp; industry data, tune margin, and export a defensible Excel workbook.</p>
+</header>
+
+<nav class="tabs" id="tabNav">
+  <button data-tab="rfq" class="active">1. RFQ Intake</button>
+  <button data-tab="benchmarks">2. Regional Benchmarks</button>
+  <button data-tab="cost">3. Cost &amp; Margin</button>
+  <button data-tab="history">4. Pricing History</button>
+  <button data-tab="addendum">5. SOW Addendum</button>
+  <button data-tab="export">6. Export</button>
+</nav>
+
+<main>
+
+<!-- ============ TAB 1: RFQ INTAKE ============ -->
+<section class="panel active" id="panel-rfq">
+
+  <div class="card">
+    <h2>Customer &amp; Deal Info</h2>
+    <div class="grid">
+      <div class="field"><label>Customer Name</label><input type="text" id="customerName" placeholder="Acme Retail Inc."></div>
+      <div class="field"><label>Warehouse / Facility Name</label><input type="text" id="warehouseName" placeholder="DC-14 Ontario, CA"></div>
+      <div class="field"><label>Quote Date</label><input type="date" id="quoteDate"></div>
+      <div class="field"><label>Contract Length (months)</label><input type="number" id="contractLength" value="36"></div>
+    </div>
+    <div class="grid" style="margin-top:8px;">
+      <div class="field"><label>Customer Type</label>
+        <select id="customerType">
+          <option>Retail / Big Box</option><option>E-commerce / DTC</option><option>Manufacturing / Industrial</option>
+          <option>Food &amp; Beverage</option><option>Pharma / Healthcare</option><option>Consumer Goods / CPG</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Operation Type</label>
+        <select id="operationType">
+          <option>Storage Only</option><option>Pick-Pack-Ship / Fulfillment</option><option>Cross-Dock</option>
+          <option>Kitting / Light Assembly</option><option>B2B Distribution</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Seasonality / Volume Volatility</label>
+        <select id="seasonality"><option>Low - steady volume</option><option selected>Moderate</option><option>High - strong peak season</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Building Specs</h2>
+    <div class="sub">Enter facility details, or upload a spec sheet below to auto-detect square footage and cost figures.</div>
+    <div class="grid">
+      <div class="field"><label>Total Facility Sq Ft</label><input type="number" id="totalFacilitySqft" value="250000"></div>
+      <div class="field"><label>Sq Ft Allocated to This Customer</label><input type="number" id="allocatedSqft" value="40000"></div>
+      <div class="field"><label>Region / Market</label>
+        <select id="region">
+          <option value="west">West Coast (LA / SF / Seattle)</option>
+          <option value="northeast">Northeast (NJ / Boston / Baltimore)</option>
+          <option value="midwest" selected>Midwest (Chicago / Kansas City)</option>
+          <option value="southwest">Southwest (Phoenix / Dallas / Houston)</option>
+          <option value="southeast">Southeast (Atlanta / Savannah / Charleston)</option>
+          <option value="mountain">Mountain (Denver / Salt Lake City)</option>
+          <option value="national">National Average (blended)</option>
+        </select>
+      </div>
+      <div class="field"><label>Dock Doors Used</label><input type="number" id="dockDoors" value="4"></div>
+    </div>
+    <div class="upload-box" style="margin-top:10px;">
+      <div><strong>Upload Building Spec Sheet</strong> (.txt, .csv work best for auto-detect; other files are attached as reference only)</div>
+      <input type="file" id="buildingSpecFile">
+      <div id="buildingSpecInfo" class="note"></div>
+      <div id="buildingSpecPreview"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Monthly Operating Volume</h2>
+    <div class="sub">Used with industry-standard process times (Regional Benchmarks tab) to estimate labor hours required.</div>
+    <div class="grid3">
+      <div class="field"><label>Pallets Received / Month</label><input type="number" id="palletsIn" value="800"></div>
+      <div class="field"><label>Pallets Shipped / Month</label><input type="number" id="palletsOut" value="750"></div>
+      <div class="field"><label>Orders / Month</label><input type="number" id="ordersMonth" value="6000"></div>
+      <div class="field"><label>Avg Lines / Order</label><input type="number" id="linesPerOrder" value="3"></div>
+      <div class="field"><label>Avg Units / Order</label><input type="number" id="unitsPerOrder" value="5"></div>
+      <div class="field"><label>Returns / Month</label><input type="number" id="returnsMonth" value="120"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Scope of Work — Supporting Documents</h2>
+    <div class="sub">Attach additional SOW detail (services included, exclusions, SLAs). Text files preview inline; other types are recorded as attached references.</div>
+    <div class="upload-box">
+      <input type="file" id="sowFile" multiple>
+      <div id="sowFileInfo" class="note"></div>
+    </div>
+    <div class="field" style="margin-top:10px;"><label>Additional Scope Notes</label><textarea id="scopeNotes" placeholder="e.g. Requires temp-controlled zone, EDI integration, dedicated account manager..."></textarea></div>
+  </div>
+
+  <div class="flex-between">
+    <span class="note">Next: review or override regional cost benchmarks, then go to Cost &amp; Margin to price the deal.</span>
+    <button class="btn" onclick="goTab('benchmarks')">Continue to Regional Benchmarks →</button>
+  </div>
+</section>
+
+<!-- ============ TAB 2: REGIONAL BENCHMARKS ============ -->
+<section class="panel" id="panel-benchmarks">
+  <div class="card">
+    <h2>National &amp; Regional Cost Benchmarks</h2>
+    <div class="sub">Editable defaults compiled from public industry data (industrial real estate reports, EIA electricity data, warehouse labor surveys). Selecting a region on the RFQ tab loads these numbers automatically — adjust them any time.</div>
+    <table id="regionTable">
+      <thead><tr><th>Region</th><th>Avg Rent ($/sqft/yr)</th><th>Avg Utilities ($/sqft/yr)</th><th>Avg Labor ($/hr, loaded)</th><th>Source</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="note" style="margin-top:8px;">Sources: Statista &amp; ReadySpaces industrial rent reports (2025-26), CommercialEdge/Cushman &amp; Wakefield, U.S. EIA average commercial/industrial electricity rates (2026), Salary.com &amp; C3 Solutions warehouse labor surveys (2025-26). Treat as directional starting points, not a substitute for actual vendor quotes.</div>
+  </div>
+
+  <div class="card">
+    <h2>Your Vendor / Facility Actuals</h2>
+    <div class="sub">Log real rent, utility and labor costs from your own vendors or existing customer facilities here to sanity-check the national averages and build in wiggle room where your actual costs differ.</div>
+    <table id="vendorTable">
+      <thead><tr><th>Facility / Vendor</th><th>Region</th><th>Rent ($/sqft/yr)</th><th>Utilities ($/sqft/yr)</th><th>Labor ($/hr)</th><th>Notes</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <button class="btn secondary" style="margin-top:8px;" onclick="addVendorRow()">+ Add Vendor Row</button>
+  </div>
+
+  <div class="card">
+    <h2>Industry Process Time Standards</h2>
+    <div class="sub">Editable minutes-per-unit assumptions used to estimate labor hours. Defaults reflect ASCM / industry-published ranges (case picking 120-175 lines/hr, putaway under 2 hrs/receipt, receiving ~$10.52/pallet equivalent).</div>
+    <div class="grid3">
+      <div class="field"><label>Receiving (min / pallet)</label><input type="number" step="0.1" id="receivingMin" value="8"></div>
+      <div class="field"><label>Putaway (min / pallet)</label><input type="number" step="0.1" id="putawayMin" value="5"></div>
+      <div class="field"><label>Picking (min / line)</label><input type="number" step="0.1" id="pickMin" value="0.5"></div>
+      <div class="field"><label>Packing base (min / order)</label><input type="number" step="0.1" id="packMinBase" value="3"></div>
+      <div class="field"><label>Packing (min / unit)</label><input type="number" step="0.1" id="packMinUnit" value="0.5"></div>
+      <div class="field"><label>Loading (min / pallet)</label><input type="number" step="0.1" id="loadingMin" value="6"></div>
+      <div class="field"><label>Labor Burden % (benefits/tax)</label><input type="number" step="1" id="laborBurdenPct" value="18"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Industry Price Reference Ranges</h2>
+    <div class="sub">Published 3PL market ranges (2025-26), used on the Cost &amp; Margin tab as a directional sanity check against your calculated price — not an exact like-for-like benchmark.</div>
+    <div class="grid3">
+      <div class="field"><label>Pallet Storage ($/pallet/mo) low</label><input type="number" id="benchPalletLow" value="18"></div>
+      <div class="field"><label>Pallet Storage ($/pallet/mo) high</label><input type="number" id="benchPalletHigh" value="25"></div>
+      <div class="field"><label>Receiving ($/pallet) low</label><input type="number" id="benchRecvLow" value="5"></div>
+      <div class="field"><label>Receiving ($/pallet) high</label><input type="number" id="benchRecvHigh" value="15"></div>
+      <div class="field"><label>Pick base ($/order) low</label><input type="number" id="benchPickLow" value="2"></div>
+      <div class="field"><label>Pick base ($/order) high</label><input type="number" id="benchPickHigh" value="5"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 3: COST & MARGIN ============ -->
+<section class="panel" id="panel-cost">
+  <div class="card">
+    <h2>Facility &amp; Overhead Costs</h2>
+    <div class="grid3">
+      <div class="field"><label>Rent ($/sqft/yr) <span class="badge-region" id="regionBadge1"></span></label><input type="number" step="0.01" id="rentPerSqftYr"></div>
+      <div class="field"><label>Utilities ($/sqft/yr)</label><input type="number" step="0.01" id="utilityPerSqftYr"></div>
+      <div class="field"><label>Other Overhead % (insurance, admin, R&amp;M)</label><input type="number" id="otherOverheadPct" value="8"></div>
+      <div class="field"><label>Actual Monthly Rent Bill (overrides calc, optional)</label><input type="number" id="rentActual" placeholder="leave blank to use rate above"></div>
+      <div class="field"><label>Actual Monthly Utility Bill (overrides calc, optional)</label><input type="number" id="utilityActual" placeholder="leave blank to use rate above"></div>
+      <div class="field"><label>Equipment / WMS / Overhead ($/month)</label><input type="number" id="equipmentOverhead" value="1500"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Labor Rate</h2>
+    <div class="grid3">
+      <div class="field"><label>Labor Rate ($/hr) <span class="badge-region" id="regionBadge2"></span></label><input type="number" step="0.01" id="laborRatePerHr"></div>
+      <div class="field"><label>Est. Labor Hours / Month</label><input type="number" id="laborHoursOut" readonly style="background:#f5f7fa;"></div>
+      <div class="field"><label>Est. FTEs (173 hrs/mo)</label><input type="number" id="ftesOut" readonly style="background:#f5f7fa;"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="flex-between"><h2 style="margin:0;">Cost Build-Up</h2><span class="note">All figures monthly unless noted</span></div>
+    <table style="margin-top:8px;">
+      <tbody id="costBreakdownBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Margin Slider</h2>
+    <div class="grid3">
+      <div class="field"><label>Target Margin Min %</label><input type="number" id="targetMarginMin" value="15"></div>
+      <div class="field"><label>Target Margin Max %</label><input type="number" id="targetMarginMax" value="30"></div>
+      <div class="field"><label>Pricing Basis for Slider Display</label>
+        <select id="pricingBasis"><option value="pallet">Per Pallet</option><option value="order">Per Order</option><option value="sqft">Per Sq Ft / Month</option><option value="hour">Per Labor Hour</option></select>
+      </div>
+    </div>
+    <div class="slider-wrap">
+      <span class="note">0%</span>
+      <input type="range" id="marginSlider" min="0" max="50" step="0.5" value="20">
+      <span class="note">50%</span>
+      <span class="slider-val" id="marginSliderVal">20%</span>
+    </div>
+    <div id="marginGauge"></div>
+
+    <div class="out-cards" id="outCards"></div>
+
+    <div style="display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap; margin-top:14px;">
+      <div id="chartWrap"><canvas id="costChart" width="300" height="300"></canvas></div>
+      <div style="flex:1; min-width:260px;">
+        <h2 style="font-size:14px;">Industry Reference Check</h2>
+        <div id="benchmarkCheck"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex-between">
+    <button class="btn secondary" onclick="goTab('rfq')">← Back to RFQ</button>
+    <button class="btn" onclick="saveQuote()">💾 Save Quote to Pricing History</button>
+  </div>
+</section>
+
+<!-- ============ TAB 4: PRICING HISTORY ============ -->
+<section class="panel" id="panel-history">
+  <div class="card">
+    <h2>Stored Pricing History</h2>
+    <div class="sub">Every saved quote is stored by customer + warehouse + date, with the full input set and resulting price, so you can trace back exactly how any price was built.</div>
+    <div class="row" style="margin-bottom:10px;">
+      <input type="text" id="historySearch" placeholder="Search by customer or warehouse..." oninput="renderHistory()" style="max-width:280px;">
+    </div>
+    <table>
+      <thead><tr><th>Date</th><th>Customer</th><th>Warehouse</th><th>Region</th><th>Rev #</th><th>$/Pallet</th><th>$/Order</th><th>Margin %</th><th>Status</th><th></th></tr></thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ TAB 5: SOW ADDENDUM ============ -->
+<section class="panel" id="panel-addendum">
+  <div class="card">
+    <h2>Scope of Work — Revision Addendum</h2>
+    <div class="sub">Pick a saved quote as the base agreement, describe what's changing, and generate a formatted addendum showing old vs. new pricing.</div>
+    <div class="grid">
+      <div class="field"><label>Base Quote (from Pricing History)</label><select id="addendumBaseQuote" onchange="onAddendumBaseChange()"></select></div>
+      <div class="field"><label>Effective Date</label><input type="date" id="addendumEffectiveDate"></div>
+      <div class="field"><label>Revision #</label><input type="number" id="addendumRevisionNum" value="1"></div>
+    </div>
+    <div class="checklist grid3" style="margin-top:6px;">
+      <label><input type="checkbox" id="chgVolume"> Volume change</label>
+      <label><input type="checkbox" id="chgSqft"> Sq ft change</label>
+      <label><input type="checkbox" id="chgService"> New service added</label>
+      <label><input type="checkbox" id="chgRate"> Rate / rent change</label>
+      <label><input type="checkbox" id="chgOther"> Other</label>
+    </div>
+    <div class="field"><label>Reason for Revision / Details</label><textarea id="addendumReason" placeholder="Describe what changed and why (e.g. customer volume grew 20%, added returns processing service, facility rent increased at renewal)..."></textarea></div>
+
+    <div class="upload-box">
+      <div><strong>Upload Original SOW</strong> (for reference — .txt previews inline)</div>
+      <input type="file" id="sowOriginalFile">
+      <div id="sowOriginalPreview"></div>
+    </div>
+
+    <button class="btn" style="margin-top:12px;" onclick="generateAddendum()">Generate Addendum Preview</button>
+  </div>
+
+  <div class="card" id="addendumPreviewCard" style="display:none;">
+    <h2>Addendum Preview</h2>
+    <div class="preview-box" id="addendumPreviewText" style="max-height:400px;"></div>
+    <button class="btn secondary" style="margin-top:10px;" onclick="copyAddendum()">Copy Text</button>
+    <button class="btn" style="margin-top:10px;" onclick="saveAddendumRevision()">Save as New Quote Revision</button>
+  </div>
+</section>
+
+<!-- ============ TAB 6: EXPORT ============ -->
+<section class="panel" id="panel-export">
+  <div class="card">
+    <h2>Export</h2>
+    <div class="sub">Generates a native Excel workbook (opens directly in Microsoft Excel) with the quote summary, full cost build-up formulas, benchmarks used, industry check, and — if applicable — the SOW addendum. Adjust the margin % cell in Excel and the price recalculates automatically.</div>
+    <div class="row">
+      <button class="btn" onclick="exportCurrentQuote()">📊 Export Current Quote to Excel</button>
+      <button class="btn secondary" onclick="exportFullHistory()">📁 Export Full Pricing History to Excel</button>
+    </div>
+    <div class="note" style="margin-top:10px;" id="exportStatus"></div>
+  </div>
+</section>
+
+</main>
+
+<footer>Unisco Pricing &amp; RFQ Tool — internal use. Regional and industry figures are editable reference defaults; verify against current vendor quotes before finalizing customer pricing.</footer>
+
+<script>
+/* ============================================================
+   DATA: regional + process + benchmark defaults
+   ============================================================ */
+const REGIONS = {
+  west:      { label:"West Coast (LA / SF / Seattle)",        rent:19.00, utility:2.60, labor:25.00 },
+  northeast: { label:"Northeast (NJ / Boston / Baltimore)",    rent:9.50,  utility:2.30, labor:22.00 },
+  midwest:   { label:"Midwest (Chicago / Kansas City)",        rent:6.50,  utility:1.60, labor:18.50 },
+  southwest: { label:"Southwest (Phoenix / Dallas / Houston)", rent:9.00,  utility:1.70, labor:19.00 },
+  southeast: { label:"Southeast (Atlanta / Savannah / Charleston)", rent:6.00, utility:1.60, labor:18.00 },
+  mountain:  { label:"Mountain (Denver / Salt Lake City)",     rent:8.50,  utility:1.80, labor:20.00 },
+  national:  { label:"National Average (blended)",             rent:9.00,  utility:2.00, labor:19.50 }
+};
+const REGION_SOURCE = "Statista/ReadySpaces industrial rent 2025-26; U.S. EIA commercial/industrial electricity 2026; Salary.com/C3 Solutions warehouse labor 2025-26";
+
+let vendorRows = load('unisco_vendor_actuals_v1', []);
+let history = load('unisco_pricing_history_v1', []);
+
+/* ============================================================
+   UTILS
+   ============================================================ */
+function load(key, fallback){ try{ const v=localStorage.getItem(key); return v?JSON.parse(v):fallback; }catch(e){ return fallback; } }
+function save(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
+function fmt$(n){ if(isNaN(n)||n==null) n=0; return '$'+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtNum(n){ if(isNaN(n)||n==null) n=0; return n.toLocaleString(undefined,{maximumFractionDigits:1}); }
+function val(id){ return parseFloat(document.getElementById(id).value)||0; }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ============================================================
+   TAB NAV
+   ============================================================ */
+function goTab(name){
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('main .panel').forEach(p=>p.classList.toggle('active', p.id==='panel-'+name));
+  if(name==='history') renderHistory();
+  if(name==='addendum') populateAddendumDropdown();
+}
+document.getElementById('tabNav').addEventListener('click', e=>{
+  const b = e.target.closest('button[data-tab]'); if(!b) return; goTab(b.dataset.tab);
+});
+
+/* ============================================================
+   REGION TABLE (editable) + apply to RFQ region select
+   ============================================================ */
+function renderRegionTable(){
+  const tbody = document.querySelector('#regionTable tbody');
+  tbody.innerHTML = '';
+  Object.keys(REGIONS).forEach(key=>{
+    const r = REGIONS[key];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.label}</td>
+      <td><input type="number" step="0.01" value="${r.rent}" onchange="REGIONS['${key}'].rent=parseFloat(this.value)||0; applyRegionDefaults();"></td>
+      <td><input type="number" step="0.01" value="${r.utility}" onchange="REGIONS['${key}'].utility=parseFloat(this.value)||0; applyRegionDefaults();"></td>
+      <td><input type="number" step="0.01" value="${r.labor}" onchange="REGIONS['${key}'].labor=parseFloat(this.value)||0; applyRegionDefaults();"></td>
+      <td class="source">${REGION_SOURCE}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function applyRegionDefaults(){
+  const key = document.getElementById('region').value;
+  const r = REGIONS[key];
+  if(!r) return;
+  document.getElementById('rentPerSqftYr').value = r.rent;
+  document.getElementById('utilityPerSqftYr').value = r.utility;
+  document.getElementById('laborRatePerHr').value = r.labor;
+  document.getElementById('regionBadge1').textContent = r.label;
+  document.getElementById('regionBadge2').textContent = r.label;
+  calc();
+}
+document.getElementById('region').addEventListener('change', applyRegionDefaults);
+
+/* ============================================================
+   VENDOR ACTUALS TABLE
+   ============================================================ */
+function renderVendorTable(){
+  const tbody = document.querySelector('#vendorTable tbody');
+  tbody.innerHTML = '';
+  vendorRows.forEach((v,i)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" value="${esc(v.name)}" onchange="vendorRows[${i}].name=this.value; save('unisco_vendor_actuals_v1',vendorRows);"></td>
+      <td><input type="text" value="${esc(v.region)}" onchange="vendorRows[${i}].region=this.value; save('unisco_vendor_actuals_v1',vendorRows);"></td>
+      <td><input type="number" step="0.01" value="${v.rent}" onchange="vendorRows[${i}].rent=parseFloat(this.value)||0; save('unisco_vendor_actuals_v1',vendorRows);"></td>
+      <td><input type="number" step="0.01" value="${v.utility}" onchange="vendorRows[${i}].utility=parseFloat(this.value)||0; save('unisco_vendor_actuals_v1',vendorRows);"></td>
+      <td><input type="number" step="0.01" value="${v.labor}" onchange="vendorRows[${i}].labor=parseFloat(this.value)||0; save('unisco_vendor_actuals_v1',vendorRows);"></td>
+      <td><input type="text" value="${esc(v.notes)}" onchange="vendorRows[${i}].notes=this.value; save('unisco_vendor_actuals_v1',vendorRows);"></td>
+      <td><button class="btn danger" onclick="removeVendorRow(${i})">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+function addVendorRow(){ vendorRows.push({name:'',region:'',rent:0,utility:0,labor:0,notes:''}); save('unisco_vendor_actuals_v1',vendorRows); renderVendorTable(); }
+function removeVendorRow(i){ vendorRows.splice(i,1); save('unisco_vendor_actuals_v1',vendorRows); renderVendorTable(); }
+
+/* ============================================================
+   FILE UPLOAD HANDLERS
+   ============================================================ */
+function handleTextFile(fileInputId, infoId, previewId, onDetect){
+  const input = document.getElementById(fileInputId);
+  input.addEventListener('change', ()=>{
+    const files = Array.from(input.files||[]);
+    if(!files.length) return;
+    const infoEl = document.getElementById(infoId);
+    infoEl.textContent = '';
+    files.forEach(f=>{
+      const isTextLike = /text|csv/.test(f.type) || /\.(txt|csv)$/i.test(f.name);
+      if(isTextLike){
+        const reader = new FileReader();
+        reader.onload = ev=>{
+          const text = ev.target.result;
+          if(previewId){
+            const pv = document.getElementById(previewId);
+            pv.innerHTML = `<div class="preview-box">${esc(text.slice(0,3000))}</div>`;
+          }
+          if(onDetect) onDetect(text);
+        };
+        reader.readAsText(f);
+      } else {
+        infoEl.innerHTML += `<div>📎 Attached (reference only, not auto-parsed): <strong>${esc(f.name)}</strong></div>`;
+      }
+    });
+  });
+}
+handleTextFile('buildingSpecFile','buildingSpecInfo','buildingSpecPreview', text=>{
+  let msg = [];
+  const sqftMatch = text.match(/([\d,]{3,})\s*(?:sq\.?\s*ft\.?|square\s*feet|sf)\b/i);
+  if(sqftMatch){
+    const n = parseInt(sqftMatch[1].replace(/,/g,''));
+    msg.push(`Detected total sq ft: ${n.toLocaleString()} (review and click to apply)`);
+    document.getElementById('buildingSpecInfo').innerHTML += `<div>${msg[msg.length-1]} <button class="btn secondary" style="padding:3px 8px;font-size:11px;" onclick="document.getElementById('totalFacilitySqft').value=${n}; calc();">Apply to Total Sq Ft</button></div>`;
+  }
+  const rentMatch = text.match(/rent[^\d$]{0,15}\$?\s?([\d,]+\.?\d*)/i);
+  if(rentMatch){
+    const n = parseFloat(rentMatch[1].replace(/,/g,''));
+    document.getElementById('buildingSpecInfo').innerHTML += `<div>Detected a rent figure: $${n.toLocaleString()} — <button class="btn secondary" style="padding:3px 8px;font-size:11px;" onclick="document.getElementById('rentActual').value=${n}; goTab('cost'); calc();">Apply as Actual Monthly Rent</button></div>`;
+  }
+  const utilMatch = text.match(/utilit\w*[^\d$]{0,15}\$?\s?([\d,]+\.?\d*)/i);
+  if(utilMatch){
+    const n = parseFloat(utilMatch[1].replace(/,/g,''));
+    document.getElementById('buildingSpecInfo').innerHTML += `<div>Detected a utility figure: $${n.toLocaleString()} — <button class="btn secondary" style="padding:3px 8px;font-size:11px;" onclick="document.getElementById('utilityActual').value=${n}; goTab('cost'); calc();">Apply as Actual Monthly Utility</button></div>`;
+  }
+  if(!msg.length && !rentMatch && !utilMatch){
+    document.getElementById('buildingSpecInfo').innerHTML += `<div>File loaded — no figures auto-detected. See preview below and enter values manually.</div>`;
+  }
+});
+handleTextFile('sowFile','sowFileInfo', null, null);
+handleTextFile('sowOriginalFile','sowOriginalPreview_info','sowOriginalPreview', null);
+
+/* ============================================================
+   CORE CALC ENGINE
+   ============================================================ */
+function getInputs(){
+  return {
+    customerName: document.getElementById('customerName').value,
+    warehouseName: document.getElementById('warehouseName').value,
+    quoteDate: document.getElementById('quoteDate').value,
+    contractLength: val('contractLength'),
+    customerType: document.getElementById('customerType').value,
+    operationType: document.getElementById('operationType').value,
+    seasonality: document.getElementById('seasonality').value,
+    totalFacilitySqft: val('totalFacilitySqft'),
+    allocatedSqft: val('allocatedSqft'),
+    regionKey: document.getElementById('region').value,
+    dockDoors: val('dockDoors'),
+    palletsIn: val('palletsIn'),
+    palletsOut: val('palletsOut'),
+    ordersMonth: val('ordersMonth'),
+    linesPerOrder: val('linesPerOrder'),
+    unitsPerOrder: val('unitsPerOrder'),
+    returnsMonth: val('returnsMonth'),
+    scopeNotes: document.getElementById('scopeNotes').value,
+    rentPerSqftYr: val('rentPerSqftYr'),
+    utilityPerSqftYr: val('utilityPerSqftYr'),
+    otherOverheadPct: val('otherOverheadPct'),
+    rentActual: document.getElementById('rentActual').value,
+    utilityActual: document.getElementById('utilityActual').value,
+    equipmentOverhead: val('equipmentOverhead'),
+    laborRatePerHr: val('laborRatePerHr'),
+    receivingMin: val('receivingMin'), putawayMin: val('putawayMin'), pickMin: val('pickMin'),
+    packMinBase: val('packMinBase'), packMinUnit: val('packMinUnit'), loadingMin: val('loadingMin'),
+    laborBurdenPct: val('laborBurdenPct'),
+    marginPct: val('marginSlider'),
+    targetMarginMin: val('targetMarginMin'), targetMarginMax: val('targetMarginMax'),
+    pricingBasis: document.getElementById('pricingBasis').value,
+    benchPalletLow: val('benchPalletLow'), benchPalletHigh: val('benchPalletHigh'),
+    benchRecvLow: val('benchRecvLow'), benchRecvHigh: val('benchRecvHigh'),
+    benchPickLow: val('benchPickLow'), benchPickHigh: val('benchPickHigh')
+  };
+}
+
+function computeQuote(inp){
+  const rentMonth = inp.rentActual!=='' ? parseFloat(inp.rentActual)||0 : (inp.rentPerSqftYr * inp.allocatedSqft / 12);
+  const utilityMonth = inp.utilityActual!=='' ? parseFloat(inp.utilityActual)||0 : (inp.utilityPerSqftYr * inp.allocatedSqft / 12);
+  const facilityBase = rentMonth + utilityMonth;
+  const otherOverheadMonth = facilityBase * (inp.otherOverheadPct/100);
+  const facilityCostMonth = facilityBase + otherOverheadMonth;
+
+  const laborHoursMonth = (
+      inp.palletsIn * inp.receivingMin +
+      inp.palletsIn * inp.putawayMin +
+      inp.ordersMonth * inp.linesPerOrder * inp.pickMin +
+      inp.ordersMonth * (inp.packMinBase + inp.unitsPerOrder * inp.packMinUnit) +
+      inp.palletsOut * inp.loadingMin
+    ) / 60;
+  const laborCostMonth = laborHoursMonth * inp.laborRatePerHr * (1 + inp.laborBurdenPct/100);
+
+  const totalCostMonth = facilityCostMonth + laborCostMonth + inp.equipmentOverhead;
+  const priceMonth = inp.marginPct < 100 ? totalCostMonth / (1 - inp.marginPct/100) : totalCostMonth;
+  const marginDollarMonth = priceMonth - totalCostMonth;
+
+  const totalPalletMoves = inp.palletsIn + inp.palletsOut;
+  const pricePerPallet = totalPalletMoves>0 ? priceMonth/totalPalletMoves : 0;
+  const pricePerOrder = inp.ordersMonth>0 ? priceMonth/inp.ordersMonth : 0;
+  const pricePerSqft = inp.allocatedSqft>0 ? priceMonth/inp.allocatedSqft : 0;
+  const pricePerHour = laborHoursMonth>0 ? priceMonth/laborHoursMonth : 0;
+
+  const costPerPallet = totalPalletMoves>0 ? totalCostMonth/totalPalletMoves : 0;
+  const costPerOrder = inp.ordersMonth>0 ? totalCostMonth/inp.ordersMonth : 0;
+
+  return { rentMonth, utilityMonth, otherOverheadMonth, facilityCostMonth, laborHoursMonth, laborCostMonth,
+    equipmentOverhead: inp.equipmentOverhead, totalCostMonth, priceMonth, marginDollarMonth,
+    totalPalletMoves, pricePerPallet, pricePerOrder, pricePerSqft, pricePerHour, costPerPallet, costPerOrder,
+    ftes: laborHoursMonth/173 };
+}
+
+function calc(){
+  const inp = getInputs();
+  const out = computeQuote(inp);
+
+  document.getElementById('laborHoursOut').value = fmtNum(out.laborHoursMonth);
+  document.getElementById('ftesOut').value = fmtNum(out.ftes);
+  document.getElementById('marginSliderVal').textContent = inp.marginPct + '%';
+
+  // cost breakdown table
+  const rows = [
+    ['Facility Rent', out.rentMonth],
+    ['Utilities', out.utilityMonth],
+    ['Other Overhead (' + inp.otherOverheadPct + '%)', out.otherOverheadMonth],
+    ['Labor (' + fmtNum(out.laborHoursMonth) + ' hrs @ $' + inp.laborRatePerHr + '/hr + ' + inp.laborBurdenPct + '% burden)', out.laborCostMonth],
+    ['Equipment / WMS / Overhead', out.equipmentOverhead],
+  ];
+  let html = rows.map(r=>`<tr><td>${r[0]}</td><td style="text-align:right;">${fmt$(r[1])}</td></tr>`).join('');
+  html += `<tr style="font-weight:700; background:#f0f4f8;"><td>Total Cost / Month</td><td style="text-align:right;">${fmt$(out.totalCostMonth)}</td></tr>`;
+  html += `<tr><td>Margin ($ at ${inp.marginPct}%)</td><td style="text-align:right;">${fmt$(out.marginDollarMonth)}</td></tr>`;
+  html += `<tr style="font-weight:700; background:#eef5fa; color:var(--navy);"><td>Total Price / Month</td><td style="text-align:right;">${fmt$(out.priceMonth)}</td></tr>`;
+  document.getElementById('costBreakdownBody').innerHTML = html;
+
+  // output cards
+  document.getElementById('outCards').innerHTML = `
+    <div class="out-card"><div class="val">${fmt$(out.pricePerPallet)}</div><div class="lbl">Price / Pallet</div></div>
+    <div class="out-card"><div class="val">${fmt$(out.pricePerOrder)}</div><div class="lbl">Price / Order</div></div>
+    <div class="out-card"><div class="val">${fmt$(out.pricePerSqft)}</div><div class="lbl">Price / Sq Ft / Month</div></div>
+    <div class="out-card"><div class="val">${fmt$(out.pricePerHour)}</div><div class="lbl">Price / Labor Hour</div></div>
+  `;
+
+  // margin gauge
+  let gaugeClass='green', gaugeMsg='Within target margin range.';
+  if(inp.marginPct < inp.targetMarginMin){ gaugeClass='red'; gaugeMsg='Below target margin — this quote is likely underpriced.'; }
+  else if(inp.marginPct > inp.targetMarginMax){ gaugeClass='amber'; gaugeMsg='Above target margin — good for profitability, but check competitiveness.'; }
+  document.getElementById('marginGauge').innerHTML = `<span class="pill ${gaugeClass}">${gaugeMsg} (target ${inp.targetMarginMin}%–${inp.targetMarginMax}%)</span>`;
+
+  // industry benchmark check
+  function rangeCheck(v, lo, hi, label, unit){
+    let cls='green', msg='within';
+    if(v<lo){ cls='amber'; msg='below'; } else if(v>hi){ cls='red'; msg='above'; }
+    const pct = (((v-((lo+hi)/2))/((lo+hi)/2))*100).toFixed(0);
+    return `<div style="margin-bottom:8px;"><span class="pill ${cls}">${label}: ${fmt$(v)}${unit} (${msg} industry range ${fmt$(lo)}–${fmt$(hi)})</span> <span class="note">${pct>0?'+':''}${pct}% vs. range midpoint</span></div>`;
+  }
+  document.getElementById('benchmarkCheck').innerHTML =
+    rangeCheck(out.pricePerPallet, inp.benchPalletLow, inp.benchPalletHigh, 'Price / Pallet', '') +
+    rangeCheck(out.costPerPallet<inp.benchRecvLow?inp.benchRecvLow:out.costPerPallet, inp.benchRecvLow, inp.benchRecvHigh, 'Receiving-equivalent cost / pallet', '') +
+    `<div class="note">Ranges reflect published 2025-26 3PL market data for comparable storage/receiving/pick services. This is a directional check, not an exact like-for-like match to your specific service mix.</div>`;
+
+  drawChart(out);
+  return { inp, out };
+}
+
+let costChart = null;
+function drawChart(out){
+  if(typeof Chart === 'undefined') return;
+  const ctx = document.getElementById('costChart');
+  const data = {
+    labels: ['Facility', 'Labor', 'Equipment/Overhead', 'Margin'],
+    datasets: [{ data: [out.facilityCostMonth, out.laborCostMonth, out.equipmentOverhead, out.marginDollarMonth],
+      backgroundColor: ['#2E86AB','#1F4E78','#8aa9bd','#1e8e5a'] }]
+  };
+  if(costChart){ costChart.data = data; costChart.update(); return; }
+  costChart = new Chart(ctx, { type:'doughnut', data, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:11, font:{size:11} } } } } });
+}
+
+// wire up live recalculation
+['customerName','warehouseName','quoteDate','contractLength','customerType','operationType','seasonality',
+ 'totalFacilitySqft','allocatedSqft','dockDoors','palletsIn','palletsOut','ordersMonth','linesPerOrder','unitsPerOrder','returnsMonth','scopeNotes',
+ 'rentPerSqftYr','utilityPerSqftYr','otherOverheadPct','rentActual','utilityActual','equipmentOverhead','laborRatePerHr',
+ 'receivingMin','putawayMin','pickMin','packMinBase','packMinUnit','loadingMin','laborBurdenPct',
+ 'marginSlider','targetMarginMin','targetMarginMax','pricingBasis',
+ 'benchPalletLow','benchPalletHigh','benchRecvLow','benchRecvHigh','benchPickLow','benchPickHigh'
+].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('input', calc);
+});
+
+/* ============================================================
+   PRICING HISTORY
+   ============================================================ */
+function saveQuote(){
+  const {inp, out} = calc();
+  if(!inp.customerName || !inp.warehouseName){ alert('Enter a Customer Name and Warehouse Name before saving.'); return; }
+  const record = {
+    id: 'q_' + Date.now(),
+    savedAt: new Date().toISOString(),
+    revision: 1,
+    parentId: null,
+    inputs: inp,
+    outputs: out,
+    status: 'Draft'
+  };
+  history.unshift(record);
+  save('unisco_pricing_history_v1', history);
+  alert('Quote saved to Pricing History.');
+  renderHistory();
+}
+
+function renderHistory(){
+  const q = (document.getElementById('historySearch')?.value || '').toLowerCase();
+  const tbody = document.getElementById('historyBody');
+  const filtered = history.filter(h => !q || (h.inputs.customerName||'').toLowerCase().includes(q) || (h.inputs.warehouseName||'').toLowerCase().includes(q));
+  tbody.innerHTML = filtered.map(h=>`
+    <tr>
+      <td>${(h.inputs.quoteDate||h.savedAt.slice(0,10))}</td>
+      <td>${esc(h.inputs.customerName)}</td>
+      <td>${esc(h.inputs.warehouseName)}</td>
+      <td>${esc(REGIONS[h.inputs.regionKey]?.label||h.inputs.regionKey)}</td>
+      <td>${h.revision}</td>
+      <td>${fmt$(h.outputs.pricePerPallet)}</td>
+      <td>${fmt$(h.outputs.pricePerOrder)}</td>
+      <td>${h.inputs.marginPct}%</td>
+      <td><select onchange="setStatus('${h.id}', this.value)">
+            ${['Draft','Quoted','Won','Lost'].map(s=>`<option ${s===h.status?'selected':''}>${s}</option>`).join('')}
+          </select></td>
+      <td class="history-actions">
+        <button class="btn secondary" onclick="loadQuote('${h.id}')">Load</button>
+        <button class="btn danger" onclick="deleteQuote('${h.id}')">Delete</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="10" class="note">No saved quotes yet.</td></tr>';
+}
+function setStatus(id, status){ const h = history.find(x=>x.id===id); if(h){ h.status=status; save('unisco_pricing_history_v1', history); } }
+function deleteQuote(id){ if(!confirm('Delete this saved quote?')) return; history = history.filter(x=>x.id!==id); save('unisco_pricing_history_v1', history); renderHistory(); }
+function loadQuote(id){
+  const h = history.find(x=>x.id===id); if(!h) return;
+  const inp = h.inputs;
+  Object.keys(inp).forEach(k=>{
+    const el = document.getElementById(k);
+    if(el && el.type!=='file') el.value = inp[k];
+  });
+  document.getElementById('marginSlider').value = inp.marginPct;
+  goTab('rfq');
+  calc();
+  alert('Quote loaded into the form. Edit and re-save to create a revision, or use the SOW Addendum tab.');
+}
+
+/* ============================================================
+   SOW ADDENDUM
+   ============================================================ */
+function populateAddendumDropdown(){
+  const sel = document.getElementById('addendumBaseQuote');
+  sel.innerHTML = '<option value="">— select a saved quote —</option>' +
+    history.map(h=>`<option value="${h.id}">${esc(h.inputs.customerName)} / ${esc(h.inputs.warehouseName)} — ${(h.inputs.quoteDate||h.savedAt.slice(0,10))} (rev ${h.revision})</option>`).join('');
+}
+function onAddendumBaseChange(){
+  const id = document.getElementById('addendumBaseQuote').value;
+  const h = history.find(x=>x.id===id);
+  if(h) document.getElementById('addendumRevisionNum').value = (h.revision||1) + 1;
+}
+function generateAddendum(){
+  const id = document.getElementById('addendumBaseQuote').value;
+  const base = history.find(x=>x.id===id);
+  if(!base){ alert('Select a base quote first.'); return; }
+  const {inp: curInp, out: curOut} = calc();
+  const changes = [];
+  if(document.getElementById('chgVolume').checked) changes.push('Volume change');
+  if(document.getElementById('chgSqft').checked) changes.push('Sq ft change');
+  if(document.getElementById('chgService').checked) changes.push('New service added');
+  if(document.getElementById('chgRate').checked) changes.push('Rate / rent change');
+  if(document.getElementById('chgOther').checked) changes.push('Other');
+  const effDate = document.getElementById('addendumEffectiveDate').value || '(not set)';
+  const revNum = document.getElementById('addendumRevisionNum').value;
+  const reason = document.getElementById('addendumReason').value || '(not provided)';
+
+  const text = `SCOPE OF WORK — ADDENDUM / REVISION ${revNum}
+==================================================
+Customer: ${base.inputs.customerName}
+Warehouse / Facility: ${base.inputs.warehouseName}
+Original Quote Date: ${base.inputs.quoteDate || base.savedAt.slice(0,10)}
+Effective Date of This Revision: ${effDate}
+
+CHANGE TYPE(S): ${changes.length?changes.join(', '):'(none selected)'}
+
+REASON FOR REVISION:
+${reason}
+
+ADDITIONAL SCOPE NOTES:
+${curInp.scopeNotes || '(none)'}
+
+--------------------------------------------------
+PRICING — BEFORE vs. AFTER
+--------------------------------------------------
+                        Original          Revised
+Price / Pallet          ${fmt$(base.outputs.pricePerPallet).padEnd(16)}  ${fmt$(curOut.pricePerPallet)}
+Price / Order           ${fmt$(base.outputs.pricePerOrder).padEnd(16)}   ${fmt$(curOut.pricePerOrder)}
+Price / Sq Ft / Month   ${fmt$(base.outputs.pricePerSqft).padEnd(16)}   ${fmt$(curOut.pricePerSqft)}
+Total Price / Month     ${fmt$(base.outputs.priceMonth).padEnd(16)}   ${fmt$(curOut.priceMonth)}
+Margin %                ${base.inputs.marginPct}%${' '.repeat(14)}${curInp.marginPct}%
+
+This addendum amends the original Scope of Work referenced above. All other terms remain in effect unless otherwise stated.
+
+Prepared by: ${'________________________'}      Date: ${'____________'}
+Customer Acceptance: ${'________________________'}   Date: ${'____________'}
+`;
+  document.getElementById('addendumPreviewText').textContent = text;
+  document.getElementById('addendumPreviewCard').style.display='block';
+  window._lastAddendum = { text, baseId: id, revNum, effDate };
+}
+function copyAddendum(){
+  if(!window._lastAddendum) return;
+  navigator.clipboard?.writeText(window._lastAddendum.text).then(()=>alert('Addendum text copied.'));
+}
+function saveAddendumRevision(){
+  if(!window._lastAddendum){ alert('Generate the addendum preview first.'); return; }
+  const base = history.find(x=>x.id===window._lastAddendum.baseId);
+  const {inp, out} = calc();
+  const record = {
+    id: 'q_' + Date.now(),
+    savedAt: new Date().toISOString(),
+    revision: parseInt(window._lastAddendum.revNum)||((base?.revision||1)+1),
+    parentId: base ? base.id : null,
+    inputs: inp,
+    outputs: out,
+    status: 'Draft',
+    addendumText: window._lastAddendum.text
+  };
+  history.unshift(record);
+  save('unisco_pricing_history_v1', history);
+  alert('Addendum saved as a new revision in Pricing History.');
+  renderHistory();
+  populateAddendumDropdown();
+}
+
+/* ============================================================
+   EXCEL EXPORT (SpreadsheetML — opens natively in Excel)
+   ============================================================ */
+function xmlHeader(){
+  return `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+ <Styles>
+  <Style ss:ID="Header"><Font ss:Bold="1" ss:Color="#FFFFFF" ss:Size="11"/><Interior ss:Color="#1F4E78" ss:Pattern="Solid"/></Style>
+  <Style ss:ID="Bold"><Font ss:Bold="1"/></Style>
+  <Style ss:ID="Total"><Font ss:Bold="1"/><Interior ss:Color="#EEF5FA" ss:Pattern="Solid"/></Style>
+  <Style ss:ID="Currency"><NumberFormat ss:Format="Currency"/></Style>
+  <Style ss:ID="Percent0"><NumberFormat ss:Format="0%"/></Style>
+ </Styles>
+`;
+}
+function sheetOpen(name){ return ` <Worksheet ss:Name="${esc(name)}"><Table>\n`; }
+function sheetClose(){ return ` </Table></Worksheet>\n`; }
+function rowStr(cells){ return `  <Row>${cells.join('')}</Row>\n`; }
+function cS(v,style){ return `<Cell${style?` ss:StyleID="${style}"`:''}><Data ss:Type="String">${esc(v)}</Data></Cell>`; }
+function cN(v,style){ const n=(typeof v==='number'&&!isNaN(v))?v:0; return `<Cell${style?` ss:StyleID="${style}"`:''}><Data ss:Type="Number">${n}</Data></Cell>`; }
+function cF(formula, cachedVal, style){ return `<Cell${style?` ss:StyleID="${style}"`:''} ss:Formula="${esc(formula)}"><Data ss:Type="Number">${(cachedVal||0)}</Data></Cell>`; }
+
+function buildQuoteSummarySheet(inp, out){
+  let s = sheetOpen('Quote Summary');
+  s += rowStr([cS('UNISCO PRICING QUOTE SUMMARY','Header'), cS('','Header')]);
+  s += rowStr([cS('Customer'), cS(inp.customerName)]);
+  s += rowStr([cS('Warehouse / Facility'), cS(inp.warehouseName)]);
+  s += rowStr([cS('Quote Date'), cS(inp.quoteDate)]);
+  s += rowStr([cS('Region'), cS(REGIONS[inp.regionKey]?.label||inp.regionKey)]);
+  s += rowStr([cS('Customer Type'), cS(inp.customerType)]);
+  s += rowStr([cS('Operation Type'), cS(inp.operationType)]);
+  s += rowStr([cS('Contract Length (months)'), cN(inp.contractLength)]);
+  s += rowStr([cS('')]);
+  s += rowStr([cS('Total Facility Sq Ft'), cN(inp.totalFacilitySqft)]);
+  s += rowStr([cS('Sq Ft Allocated to Customer'), cN(inp.allocatedSqft)]);
+  s += rowStr([cS('Pallets In / Month'), cN(inp.palletsIn)]);
+  s += rowStr([cS('Pallets Out / Month'), cN(inp.palletsOut)]);
+  s += rowStr([cS('Orders / Month'), cN(inp.ordersMonth)]);
+  s += rowStr([cS('Lines / Order'), cN(inp.linesPerOrder)]);
+  s += rowStr([cS('Units / Order'), cN(inp.unitsPerOrder)]);
+  s += rowStr([cS('')]);
+  s += rowStr([cS('FINAL PRICING','Bold'), cS('','Bold')]);
+  s += rowStr([cS('Price / Pallet'), cN(out.pricePerPallet,'Currency')]);
+  s += rowStr([cS('Price / Order'), cN(out.pricePerOrder,'Currency')]);
+  s += rowStr([cS('Price / Sq Ft / Month'), cN(out.pricePerSqft,'Currency')]);
+  s += rowStr([cS('Price / Labor Hour'), cN(out.pricePerHour,'Currency')]);
+  s += rowStr([cS('Total Price / Month'), cN(out.priceMonth,'Currency')]);
+  s += rowStr([cS('Margin %'), cN(inp.marginPct/100,'Percent0')]);
+  s += sheetClose();
+  return s;
+}
+
+function buildCostBreakdownSheet(inp, out){
+  // Rows laid out so B column holds values; formulas reference absolute R#C2 cells.
+  let s = sheetOpen('Cost Breakdown');
+  s += rowStr([cS('COST BUILD-UP (editable — adjust any input cell to recalculate)','Header'), cS('','Header')]);
+  // row 2
+  s += rowStr([cS('Rent / Month'), cN(out.rentMonth,'Currency')]);                     // R2
+  s += rowStr([cS('Utilities / Month'), cN(out.utilityMonth,'Currency')]);              // R3
+  s += rowStr([cS('Other Overhead %'), cN(inp.otherOverheadPct/100,'Percent0')]);        // R4
+  s += rowStr([cS('Other Overhead $'), cF('=(R2C2+R3C2)*R4C2', out.otherOverheadMonth, 'Currency')]); // R5
+  s += rowStr([cS('Facility Cost Subtotal'), cF('=R2C2+R3C2+R5C2', out.facilityCostMonth, 'Total')]); // R6
+  s += rowStr([cS('')]);
+  s += rowStr([cS('Labor Hours / Month'), cN(out.laborHoursMonth)]);                    // R8
+  s += rowStr([cS('Labor Rate $/hr'), cN(inp.laborRatePerHr,'Currency')]);              // R9
+  s += rowStr([cS('Labor Burden %'), cN(inp.laborBurdenPct/100,'Percent0')]);            // R10
+  s += rowStr([cS('Labor Cost / Month'), cF('=R8C2*R9C2*(1+R10C2)', out.laborCostMonth, 'Total')]); // R11
+  s += rowStr([cS('')]);
+  s += rowStr([cS('Equipment / WMS / Overhead'), cN(out.equipmentOverhead,'Currency')]); // R13
+  s += rowStr([cS('')]);
+  s += rowStr([cS('TOTAL COST / MONTH'), cF('=R6C2+R11C2+R13C2', out.totalCostMonth,'Total')]); // R15
+  s += rowStr([cS('Margin %'), cN(inp.marginPct/100,'Percent0')]);                      // R16
+  s += rowStr([cS('TOTAL PRICE / MONTH'), cF('=R15C2/(1-R16C2)', out.priceMonth,'Total')]); // R17
+  s += rowStr([cS('Margin $ / Month'), cF('=R17C2-R15C2', out.marginDollarMonth,'Currency')]); // R18
+  s += rowStr([cS('')]);
+  s += rowStr([cS('Total Pallet Moves / Month'), cN(out.totalPalletMoves)]);            // R20
+  s += rowStr([cS('Orders / Month'), cN(inp.ordersMonth)]);                             // R21
+  s += rowStr([cS('Allocated Sq Ft'), cN(inp.allocatedSqft)]);                          // R22
+  s += rowStr([cS('Price / Pallet'), cF('=R17C2/R20C2', out.pricePerPallet,'Currency')]); // R23
+  s += rowStr([cS('Price / Order'), cF('=R17C2/R21C2', out.pricePerOrder,'Currency')]);   // R24
+  s += rowStr([cS('Price / Sq Ft / Month'), cF('=R17C2/R22C2', out.pricePerSqft,'Currency')]); // R25
+  s += rowStr([cS('')]);
+  s += rowStr([cS('Target Margin Min %'), cN(inp.targetMarginMin/100,'Percent0')]);
+  s += rowStr([cS('Target Margin Max %'), cN(inp.targetMarginMax/100,'Percent0')]);
+  s += rowStr([cS('Margin OK? (TRUE = within target range)'), cS(String(inp.marginPct>=inp.targetMarginMin && inp.marginPct<=inp.targetMarginMax))]);
+  s += sheetClose();
+  return s;
+}
+
+function buildBenchmarkSheet(inp){
+  let s = sheetOpen('Regional Benchmarks');
+  s += rowStr([cS('Region','Header'), cS('Rent $/sqft/yr','Header'), cS('Utility $/sqft/yr','Header'), cS('Labor $/hr','Header')]);
+  Object.keys(REGIONS).forEach(k=>{
+    const r = REGIONS[k];
+    s += rowStr([cS(r.label + (k===inp.regionKey?' (selected)':'')), cN(r.rent,'Currency'), cN(r.utility,'Currency'), cN(r.labor,'Currency')]);
+  });
+  s += rowStr([cS('')]);
+  s += rowStr([cS('Your Vendor / Facility Actuals','Header'), cS('','Header'), cS('','Header'), cS('','Header')]);
+  s += rowStr([cS('Facility / Vendor','Bold'), cS('Region','Bold'), cS('Rent','Bold'), cS('Utility / Labor','Bold')]);
+  vendorRows.forEach(v=>{
+    s += rowStr([cS(v.name), cS(v.region), cN(v.rent,'Currency'), cN(v.utility,'Currency')]);
+  });
+  s += sheetClose();
+  return s;
+}
+
+function buildBenchmarkCheckSheet(inp, out){
+  let s = sheetOpen('Industry Check');
+  s += rowStr([cS('Metric','Header'), cS('Your Price','Header'), cS('Industry Low','Header'), cS('Industry High','Header'), cS('Status','Header')]);
+  function statusOf(v,lo,hi){ return v<lo?'Below Range':(v>hi?'Above Range':'Within Range'); }
+  s += rowStr([cS('Price / Pallet'), cN(out.pricePerPallet,'Currency'), cN(inp.benchPalletLow,'Currency'), cN(inp.benchPalletHigh,'Currency'), cS(statusOf(out.pricePerPallet,inp.benchPalletLow,inp.benchPalletHigh))]);
+  s += rowStr([cS('Cost / Pallet (receiving-equiv.)'), cN(out.costPerPallet,'Currency'), cN(inp.benchRecvLow,'Currency'), cN(inp.benchRecvHigh,'Currency'), cS(statusOf(out.costPerPallet,inp.benchRecvLow,inp.benchRecvHigh))]);
+  s += rowStr([cS('')]);
+  s += rowStr([cS('Note: directional comparison against published 2025-26 3PL market ranges; not an exact like-for-like benchmark.')]);
+  s += sheetClose();
+  return s;
+}
+
+function buildHistorySheet(){
+  let s = sheetOpen('Pricing History');
+  s += rowStr([cS('Date','Header'),cS('Customer','Header'),cS('Warehouse','Header'),cS('Region','Header'),cS('Rev#','Header'),cS('$/Pallet','Header'),cS('$/Order','Header'),cS('$/SqFt','Header'),cS('Margin %','Header'),cS('Status','Header')]);
+  history.forEach(h=>{
+    s += rowStr([
+      cS(h.inputs.quoteDate||h.savedAt.slice(0,10)), cS(h.inputs.customerName), cS(h.inputs.warehouseName),
+      cS(REGIONS[h.inputs.regionKey]?.label||h.inputs.regionKey), cN(h.revision),
+      cN(h.outputs.pricePerPallet,'Currency'), cN(h.outputs.pricePerOrder,'Currency'), cN(h.outputs.pricePerSqft,'Currency'),
+      cN(h.inputs.marginPct/100,'Percent0'), cS(h.status)
+    ]);
+  });
+  s += sheetClose();
+  return s;
+}
+
+function buildAddendumSheet(){
+  if(!window._lastAddendum) return '';
+  let s = sheetOpen('SOW Addendum');
+  window._lastAddendum.text.split('\n').forEach(line=>{
+    s += rowStr([cS(line)]);
+  });
+  s += sheetClose();
+  return s;
+}
+
+function downloadXml(xml, filename){
+  const blob = new Blob([xml], {type:'application/vnd.ms-excel'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function exportCurrentQuote(){
+  const {inp, out} = calc();
+  let xml = xmlHeader();
+  xml += buildQuoteSummarySheet(inp, out);
+  xml += buildCostBreakdownSheet(inp, out);
+  xml += buildBenchmarkSheet(inp);
+  xml += buildBenchmarkCheckSheet(inp, out);
+  if(window._lastAddendum) xml += buildAddendumSheet();
+  xml += `</Workbook>`;
+  const fname = `Pricing_${(inp.customerName||'Quote').replace(/[^a-z0-9]/gi,'_')}_${(inp.quoteDate||'').replace(/-/g,'')||'draft'}.xls`;
+  downloadXml(xml, fname);
+  document.getElementById('exportStatus').textContent = 'Exported: ' + fname;
+}
+function exportFullHistory(){
+  let xml = xmlHeader();
+  xml += buildHistorySheet();
+  xml += buildBenchmarkSheet(getInputs());
+  xml += `</Workbook>`;
+  downloadXml(xml, 'Unisco_Pricing_History.xls');
+  document.getElementById('exportStatus').textContent = 'Exported: Unisco_Pricing_History.xls';
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+function init(){
+  document.getElementById('quoteDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('addendumEffectiveDate').value = new Date().toISOString().slice(0,10);
+  renderRegionTable();
+  renderVendorTable();
+  applyRegionDefaults();
+  renderHistory();
+  populateAddendumDropdown();
+  calc();
+}
+window.addEventListener('load', ()=>{
+  // small delay to ensure Chart.js CDN script (loaded in head) is parsed
+  setTimeout(init, 30);
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+
+</body>
+</html>
