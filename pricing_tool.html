@@ -474,6 +474,11 @@
     <div class="grid3">
       <div class="field"><label>Total Facility Sq Ft</label><input type="number" id="pnlTotalSqft" placeholder="e.g. 250000"></div>
     </div>
+    <div class="upload-box" style="margin-top:10px;">
+      <div><strong>Upload Customer List</strong> (.csv or .txt — one customer per row: Customer Name, Sq Ft Allocated) — <a href="#" onclick="downloadPnlCustomerTemplate(); return false;">📥 Download Template (.csv)</a></div>
+      <input type="file" id="pnlCustomersFile">
+      <div id="pnlCustomersFileInfo" class="note"></div>
+    </div>
     <table style="margin-top:12px;">
       <thead><tr><th>Customer</th><th>Sq Ft Allocated</th><th></th></tr></thead>
       <tbody id="pnlCustomersBody"></tbody>
@@ -1257,6 +1262,53 @@ function loadPnlCustomersFromHistory(){
   const names = Object.keys(seen);
   if(!names.length){ alert(`No saved quotes for "${key}" yet — save a quote for this facility in Pricing History first, or add customers manually below.`); return; }
   data.customers = names.map(name=>({ name, sqft: seen[name] }));
+  savePnlDataByLocation();
+  renderPnlCustomers();
+}
+
+function downloadPnlCustomerTemplate(){
+  const csv = 'Customer Name,Sq Ft Allocated\r\nAcme Retail Inc.,12000\r\nExample Customer 2,8500\r\n';
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'facility_customer_sqft_template.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+function parsePnlCustomersCsv(text){
+  const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length);
+  const rows = [];
+  lines.forEach(line=>{
+    if(/^customer\s*name/i.test(line)) return; // skip header row
+    const delim = line.includes('\t') ? '\t' : ',';
+    const parts = line.split(delim).map(p=>p.trim());
+    if(parts.length<2) return;
+    const name = parts[0];
+    const sqft = parseFloat(parts[1].replace(/[,$]/g,''));
+    if(!name || isNaN(sqft)) return;
+    rows.push({ name, sqft });
+  });
+  return rows;
+}
+let lastPnlCustomerImportRows = [];
+handleTextFile('pnlCustomersFile','pnlCustomersFileInfo', null, text=>{
+  const rows = parsePnlCustomersCsv(text);
+  const infoEl = document.getElementById('pnlCustomersFileInfo');
+  if(rows.length){
+    lastPnlCustomerImportRows = rows;
+    infoEl.innerHTML += `<div>Detected ${rows.length} customer(s) totaling ${fmtNum(rows.reduce((s,r)=>s+r.sqft,0))} sq ft — <button class="btn secondary" style="padding:3px 8px;font-size:11px;" onclick="applyPnlCustomerImport()">Apply to Customer Table</button></div>`;
+  } else {
+    infoEl.innerHTML += `<div>File loaded — no customer/sq ft rows detected. Use the template format: Customer Name, Sq Ft Allocated (one per row).</div>`;
+  }
+});
+function applyPnlCustomerImport(){
+  if(!lastPnlCustomerImportRows.length) return;
+  const data = currentPnlLocationData();
+  if(!data){ alert('Select a Facility / Location above first.'); return; }
+  data.customers = lastPnlCustomerImportRows.map(r=>({ name: r.name, sqft: r.sqft }));
   savePnlDataByLocation();
   renderPnlCustomers();
 }
