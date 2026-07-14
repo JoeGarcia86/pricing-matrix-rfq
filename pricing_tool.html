@@ -219,7 +219,12 @@
     <h2>Customer &amp; Deal Info</h2>
     <div class="grid">
       <div class="field"><label>Customer Name</label><input type="text" id="customerName" placeholder="Acme Retail Inc."></div>
-      <div class="field"><label>Warehouse / Facility Name</label><input type="text" id="warehouseName" placeholder="DC-14 Ontario, CA"></div>
+      <div class="field">
+        <label>Warehouse / Facility Name</label>
+        <select id="warehouseName"><option value="">— Select a UNIS facility —</option></select>
+        <input type="text" id="warehouseNameOtherText" placeholder="Type the facility name..." style="display:none; margin-top:6px;">
+        <div class="note" id="warehouseLocationInfo" style="margin-top:4px;"></div>
+      </div>
       <div class="field"><label>Quote Date</label><input type="date" id="quoteDate"></div>
       <div class="field"><label>Contract Length (months)</label><input type="number" id="contractLength" value="36"></div>
     </div>
@@ -513,6 +518,94 @@ const REGIONS = {
 };
 const REGION_SOURCE = "Statista/ReadySpaces industrial rent 2025-26; U.S. EIA commercial/industrial electricity 2026; Salary.com/C3 Solutions warehouse labor 2025-26";
 
+/* Full active UNIS location list. Building # doubles as the accounting code. */
+const LOCATIONS_RAW = [
+  ['109','Innovation','LT_ORG-67669','Riverside','CA'],
+  ['112','Vista','LT_F40','Sparks','NV'],
+  ['113','St John','LT_F36','Kansas','MO'],
+  ['114','Doolittle','LT_F45','Salt Lake City','UT'],
+  ['116','Wiegman','LT_F39','Hayward','CA'],
+  ['129','Cassens','LT_F38','Fenton','MO'],
+  ['132','Airport','LT_F42','Ontario','CA'],
+  ['136','University Park','LT_F59','University Park','IL'],
+  ['139','Plano','LT_F98','Plano','TX'],
+  ['140','Ignition','LT_F37','Jacksonville','FL'],
+  ['144','Citypark','LT_F10002','Houston','TX'],
+  ['146','146-El Paso','LT_F131','El Paso','TX'],
+  ['151','151-VGT','LT_F132','Las Vegas','NV'],
+  ['152','152-Somerset','LT_F133','Somerset','NV'],
+  ['154','154-El Paso','LT_F134','El Paso','TX'],
+  ['156','Moreno Valley','LT_F135','Moreno Valley','CA'],
+  ['158','158-Suffolk','LT_F136','Suffolk','VA'],
+  ['189','La Mirada','LT_F46','La Mirada','CA'],
+  ['195','Navigation','LT_F32','Houston','TX'],
+  ['804','Prosperity','LT_F31','Garden City','GA'],
+  ['805','Charleston','LT_F9','Charleston','SC'],
+  ['806','Greenwood','LT_F16','Greenwood','IN'],
+  ['807','Bolingbrook','LT_F17','Bolingbrook','IL'],
+  ['808','Gougar','LT_F12','Lockport','IL'],
+  ['810','Indiana','LT_ORG-8127','Portage','IN'],
+  ['812','Quality_4400','LT_ORG-77709','Memphis','TN'],
+  ['813','Hazelton','LT_F13','Hazelton','PA'],
+  ['814','Coppell','LT_F18','Coppell','TX'],
+  ['818','Walnut','LT_ORG-2','Walnut','CA'],
+  ['819','Portsmouth','LT_F43','Portsmouth','VA'],
+  ['820','Suffolk','LT_F44','Suffolk','VA'],
+  ['823','Seabrook','LT_F19','Pooler','GA'],
+  ['824','Tucker','LT_F20','Tucker','GA'],
+  ['825','Cesanek','LT_F21','Northampton','PA'],
+  ['827','Douglasville','LT_F33','Douglasville','GA'],
+  ['828','Turnbull','LT_ORG-7955','City of Industry','CA'],
+  ['830','Savannah','LT_ORG-35184','Pooler','GA'],
+  ['832','Gifford','LT_F41','Grand Prairie','TX'],
+  ['838','Transcon-838','LT_F6','Kansas City','MO'],
+  ['848','Murphy','LT_ORG-50100','Woodridge','IL'],
+  ['868','Red Bluff','LT_ORG-45230','Pasadena','TX'],
+  ['869','Roanoke','LT_F25','Roanoke','TX'],
+  ['875','Cyprus','LT_F35','Summerville','SC'],
+  ['877','Kent','LT_F23','Kent','WA'],
+  ['878','Tolleson','LT_F27','Tolleson','AZ'],
+  ['879','Lincoln','LT_F22','Tacoma','WA'],
+  ['880','Tacoma','LT_F14','Tacoma','WA'],
+  ['882','Alessandro','LT_F11','Riverside','CA'],
+  ['884','Goodyear','LT_F29','Goodyear','AZ'],
+  ['885','Cotton','LT_F34','Waddell','AZ'],
+  ['887','Gardena','LT_F10','Gardena','CA'],
+  ['889','Valley View','LT_F1','Buena Park','CA'],
+  ['890','Joliet','LT_ORG-61213','Elwood','IL'],
+  ['891','Reyes','LT_ORG-7990','Rancho Dominguez','CA'],
+  ['892','Delp-892','LT_F7','Memphis','TN'],
+  ['893','Morgan Lakes','LT_F4','Pooler','GA'],
+  ['895','Houston','LT_ORG-34647','Pasadena','TX'],
+  ['897','Ontario','LT_ORG-7455','Ontario','CA'],
+  ['898','Via Baron','LT_ORG-7656','Compton','CA'],
+  ['899','Valley','LT_ORG-8125','City Of Industry','CA'],
+  ['901','Texas','LT_ORG-8126','Grand Prairie','TX'],
+  ['902','Spring-902','LT_F5','Lakewood','WA'],
+  ['906','Hayward','LT_ORG-7972','Hayward','CA'],
+  ['908','Sacramento','LT_F8','West Sacramento','CA'],
+  ['909','New Jersey','LT_ORG-34646','Edison','NJ'],
+  ['920','Willow','LT_ORG-7941','Long Beach','CA'],
+  ['930','Marlay','LT_ORG-7954','Fontana','CA'],
+  ['931','Fontana','LT_ORG-7759','Moreno Valley','CA'],
+  ['—','COR-1','LT_F3','Walnut','CA'],
+  ['—','Holt','LT_F15','Holt','MI'],
+  ['—','UNIS House','LT_F47','Buena Park','CA']
+];
+const LOCATIONS = LOCATIONS_RAW.map(([building,name,facilityId,city,state])=>{
+  const label = `${name} — ${city}, ${state} (${building!=='—' ? 'Bldg #'+building+', ' : ''}${facilityId})`;
+  return { building, name, facilityId, city, state, label };
+});
+/* Approximate state -> regional benchmark bucket mapping, matching the REGIONS labels above */
+const STATE_TO_REGION = {
+  CA:'west', WA:'west', NV:'west',
+  UT:'mountain',
+  AZ:'southwest', TX:'southwest',
+  MO:'midwest', IL:'midwest', IN:'midwest', MI:'midwest',
+  PA:'northeast', NJ:'northeast',
+  GA:'southeast', SC:'southeast', TN:'southeast', FL:'southeast', VA:'southeast'
+};
+
 let vendorRows = load('unisco_vendor_actuals_v1', []);
 let history = load('unisco_pricing_history_v1', []);
 function defaultSowSteps(){
@@ -660,6 +753,45 @@ function applyRegionDefaults(){
   calc();
 }
 document.getElementById('region').addEventListener('change', applyRegionDefaults);
+
+/* ============================================================
+   UNIS FACILITY DROPDOWN (Warehouse / Facility Name)
+   ============================================================ */
+function renderWarehouseOptions(){
+  const sel = document.getElementById('warehouseName');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— Select a UNIS facility —</option>' +
+    LOCATIONS.map(loc=>`<option value="${esc(loc.label)}" data-building="${esc(loc.building)}" data-facility="${esc(loc.facilityId)}" data-city="${esc(loc.city)}" data-state="${esc(loc.state)}">${esc(loc.label)}</option>`).join('') +
+    '<option value="__other__">Other / Not Listed…</option>';
+}
+function getWarehouseName(){
+  const sel = document.getElementById('warehouseName');
+  if(!sel) return '';
+  if(sel.value === '__other__') return document.getElementById('warehouseNameOtherText').value;
+  return sel.value;
+}
+function handleWarehouseChange(){
+  const sel = document.getElementById('warehouseName');
+  const otherField = document.getElementById('warehouseNameOtherText');
+  const infoEl = document.getElementById('warehouseLocationInfo');
+  if(sel.value === '__other__'){
+    otherField.style.display = 'block';
+    infoEl.textContent = '';
+    return;
+  }
+  otherField.style.display = 'none';
+  const opt = sel.selectedOptions[0];
+  if(!opt || !opt.dataset.facility){ infoEl.textContent = ''; return; }
+  const { building, facility, city, state } = opt.dataset;
+  infoEl.textContent = `Building #${building} · Facility ID ${facility} · ${city}, ${state}`;
+  const regionKey = STATE_TO_REGION[state];
+  if(regionKey && REGIONS[regionKey]){
+    document.getElementById('region').value = regionKey;
+    applyRegionDefaults();
+  }
+}
+document.getElementById('warehouseName').addEventListener('change', handleWarehouseChange);
+document.getElementById('warehouseNameOtherText').addEventListener('input', calc);
 
 /* ============================================================
    VENDOR ACTUALS TABLE
@@ -811,7 +943,7 @@ handleTextFile('sowOriginalFile','sowOriginalPreview_info','sowOriginalPreview',
 function getInputs(){
   return {
     customerName: document.getElementById('customerName').value,
-    warehouseName: document.getElementById('warehouseName').value,
+    warehouseName: getWarehouseName(),
     quoteDate: document.getElementById('quoteDate').value,
     contractLength: val('contractLength'),
     customerType: document.getElementById('customerType').value,
@@ -1045,6 +1177,14 @@ function loadQuote(id){
     const el = document.getElementById(k);
     if(el && el.type!=='file') el.value = inp[k];
   });
+  // warehouseName is now a facility dropdown — if the saved name doesn't match a listed
+  // facility (e.g. it was typed under "Other"), fall back to the free-text override field.
+  const whSel = document.getElementById('warehouseName');
+  if(whSel.value !== inp.warehouseName){
+    whSel.value = '__other__';
+    document.getElementById('warehouseNameOtherText').value = inp.warehouseName || '';
+  }
+  handleWarehouseChange();
   document.getElementById('marginSlider').value = inp.marginPct;
   goTab('rfq');
   calc();
@@ -1335,6 +1475,7 @@ function exportFullHistory(){
 function init(){
   document.getElementById('quoteDate').value = new Date().toISOString().slice(0,10);
   document.getElementById('addendumEffectiveDate').value = new Date().toISOString().slice(0,10);
+  renderWarehouseOptions();
   renderRegionTable();
   renderVendorTable();
   applyRegionDefaults();
