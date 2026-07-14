@@ -447,10 +447,18 @@
       <button class="btn secondary" style="margin-top:8px;" onclick="parsePastedPnlText()">Parse Pasted Text</button>
       <div id="pnlPasteInfo" class="note" style="margin-top:6px;"></div>
     </div>
-    <table style="margin-top:12px;">
-      <thead><tr><th>Overhead Line Item</th><th>Monthly $</th><th></th></tr></thead>
+    <div class="note">$/Sq Ft columns use the Total Facility Sq Ft entered in "Facility Occupancy &amp; Break-Even" below — set that first to see per-sq-ft cost (e.g. rent's true cost per sq ft for storage).</div>
+    <table style="margin-top:8px;">
+      <thead><tr><th>Overhead Line Item</th><th>Monthly $</th><th>Annual $</th><th>$/Sq Ft/Yr</th><th>$/Sq Ft/Mo</th><th></th></tr></thead>
       <tbody id="pnlLinesBody"></tbody>
-      <tfoot><tr style="font-weight:700; background:var(--card-alt);"><td>Total Monthly Overhead</td><td id="pnlTotalCell" style="text-align:right; padding-right:16px;"></td><td></td></tr></tfoot>
+      <tfoot><tr style="font-weight:700; background:var(--card-alt);">
+        <td>Total Monthly Overhead</td>
+        <td id="pnlTotalCell" style="text-align:right; padding-right:16px;"></td>
+        <td id="pnlTotalAnnualCell" style="text-align:right; padding-right:16px;"></td>
+        <td id="pnlTotalPerSqftYrCell" style="text-align:right; padding-right:16px;"></td>
+        <td id="pnlTotalPerSqftMoCell" style="text-align:right; padding-right:16px;"></td>
+        <td></td>
+      </tr></tfoot>
     </table>
     <div class="row" style="margin-top:8px; gap:8px; align-items:center;">
       <button class="btn secondary" onclick="addPnlLine()">+ Add Line Item</button>
@@ -1061,14 +1069,30 @@ handleTextFile('sowOriginalFile','sowOriginalPreview_info','sowOriginalPreview',
    ============================================================ */
 function defaultPnlLines(){
   return [
-    {label:'Rent', amount:0},
-    {label:'Electricity / Lights', amount:0},
-    {label:'Water', amount:0},
-    {label:'Internet / Telecom', amount:0},
-    {label:'Insurance', amount:0},
-    {label:'Maintenance / Other', amount:0}
+    {label:'Rent (Base + CAM)', amount:0},
+    {label:'Utilities', amount:0},
+    {label:'Equipment (Lease + Repairs & Maintenance)', amount:0},
+    {label:'Technology / IT', amount:0},
+    {label:'Corporate Allocation', amount:0},
+    {label:'Indirect Labor', amount:0}
   ];
 }
+// Real overhead figures supplied for specific facilities — seeded in automatically the first time
+// that facility is selected (or if its overhead table is empty), never overwriting entered data.
+const PNL_SEED_DATA = {
+  'Citypark — Houston, TX (Bldg #144, LT_F10002)': {
+    totalSqft: 115466,
+    lines: [
+      {label:'Rent (Base + CAM)', amount:77067.63},
+      {label:'Utilities', amount:1425.05},
+      {label:'Equipment (Lease + Repairs & Maintenance)', amount:5612.88},
+      {label:'Technology / IT', amount:1324.85},
+      {label:'Corporate Allocation', amount:2691.19},
+      {label:'Indirect Labor (TBD)', amount:0}
+    ],
+    customers: []
+  }
+};
 // All P&L / occupancy data is keyed by facility so switching locations never mixes numbers.
 let pnlDataByLocation = load('unisco_pnl_by_location_v1', {});
 function savePnlDataByLocation(){ save('unisco_pnl_by_location_v1', pnlDataByLocation); }
@@ -1089,7 +1113,12 @@ function getPnlLocationKey(){
 function currentPnlLocationData(){
   const key = getPnlLocationKey();
   if(!key) return null;
-  if(!pnlDataByLocation[key]) pnlDataByLocation[key] = emptyPnlLocationData();
+  const seed = PNL_SEED_DATA[key];
+  const existing = pnlDataByLocation[key];
+  const isEmpty = existing && (!existing.lines || !existing.lines.length) && !existing.totalSqft;
+  if(!existing || (seed && isEmpty)){
+    pnlDataByLocation[key] = seed ? JSON.parse(JSON.stringify(seed)) : (existing || emptyPnlLocationData());
+  }
   return pnlDataByLocation[key];
 }
 function handlePnlLocationChange(){
@@ -1140,22 +1169,42 @@ document.getElementById('pnlTotalSqft').addEventListener('input', ()=>{
 function renderPnlLines(){
   const tbody = document.getElementById('pnlLinesBody');
   const cell = document.getElementById('pnlTotalCell');
+  const annualCell = document.getElementById('pnlTotalAnnualCell');
+  const perSqftYrCell = document.getElementById('pnlTotalPerSqftYrCell');
+  const perSqftMoCell = document.getElementById('pnlTotalPerSqftMoCell');
   if(!tbody) return;
   const data = currentPnlLocationData();
   if(!data){
-    tbody.innerHTML = `<tr><td colspan="3" class="note">Select a Facility / Location above to enter or view its overhead.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="note">Select a Facility / Location above to enter or view its overhead.</td></tr>`;
     if(cell) cell.textContent = '';
+    if(annualCell) annualCell.textContent = '';
+    if(perSqftYrCell) perSqftYrCell.textContent = '';
+    if(perSqftMoCell) perSqftMoCell.textContent = '';
     renderPnlOccupancy();
     return;
   }
-  tbody.innerHTML = data.lines.map((l,i)=>`
+  const totalSqft = data.totalSqft || 0;
+  tbody.innerHTML = data.lines.map((l,i)=>{
+    const monthly = parseFloat(l.amount)||0;
+    const annual = monthly*12;
+    const perSqftYr = totalSqft>0 ? annual/totalSqft : null;
+    const perSqftMo = totalSqft>0 ? monthly/totalSqft : null;
+    return `
     <tr>
       <td><input type="text" value="${esc(l.label)}" onchange="editPnlLineLabel(${i}, this.value)"></td>
       <td><input type="number" value="${l.amount||0}" onchange="editPnlLineAmount(${i}, this.value)"></td>
+      <td style="text-align:right;">${fmt$(annual)}</td>
+      <td style="text-align:right;">${perSqftYr!=null ? '$'+perSqftYr.toFixed(2) : '—'}</td>
+      <td style="text-align:right;">${perSqftMo!=null ? '$'+perSqftMo.toFixed(2) : '—'}</td>
       <td><button class="btn danger" style="padding:3px 8px;font-size:11px;" onclick="removePnlLine(${i})">✕</button></td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   const total = data.lines.reduce((s,l)=>s+(parseFloat(l.amount)||0),0);
+  const totalAnnual = total*12;
   if(cell) cell.textContent = fmt$(total);
+  if(annualCell) annualCell.textContent = fmt$(totalAnnual);
+  if(perSqftYrCell) perSqftYrCell.textContent = totalSqft>0 ? '$'+(totalAnnual/totalSqft).toFixed(2) : '—';
+  if(perSqftMoCell) perSqftMoCell.textContent = totalSqft>0 ? '$'+(total/totalSqft).toFixed(2) : '—';
   renderPnlOccupancy();
 }
 function editPnlLineLabel(i, value){ const data=currentPnlLocationData(); if(!data) return; data.lines[i].label=value; savePnlDataByLocation(); }
