@@ -287,6 +287,17 @@
     </div>
   </div>
 
+  <div class="card" id="projectionsCard" style="display:none;">
+    <div class="flex-between"><h2 style="margin:0;">Customer-Provided Volume Projections</h2><span class="note">Shown because Seasonality = "Projections / Forecast Provided"</span></div>
+    <div class="sub">Upload the forecast the customer gave you — one row per period, with columns for pallets in/out and orders (.csv or .txt work best for auto-detect; other file types are attached as reference only). We'll price each period against your current Cost &amp; Margin and Regional Benchmark inputs.</div>
+    <div class="upload-box">
+      <input type="file" id="projectionsFile" accept=".csv,.txt">
+      <div id="projectionsInfo" class="note"></div>
+      <div id="projectionsPreview"></div>
+    </div>
+    <div id="projectionsResults"></div>
+  </div>
+
   <div class="card">
     <div class="flex-between"><h2 style="margin:0;">Scope of Work — Process Steps &amp; Guesstimates</h2><span class="note">Auto-filled from volumes above</span></div>
     <div class="sub">Build the SOW as a sequence of process steps. The standard steps below auto-calculate a time &amp; cost guesstimate from your volumes and the Process Time Standards / labor rate (Regional Benchmarks tab) — edit any Hours or Cost cell to lock in your own number instead, or add custom steps for anything not covered.</div>
@@ -938,6 +949,94 @@ handleTextFile('sowFile','sowFileInfo', null, null);
 handleTextFile('sowOriginalFile','sowOriginalPreview_info','sowOriginalPreview', null);
 
 /* ============================================================
+   CUSTOMER VOLUME PROJECTIONS (shown when Seasonality = "Projections / Forecast Provided")
+   Parses a customer-supplied CSV/TXT forecast (one row per period) and prices each
+   period against the current cost model, reusing computeQuote() so the math always
+   matches the Cost & Margin tab.
+   ============================================================ */
+let lastProjectionRows = [];
+function toggleProjectionsSection(){
+  const card = document.getElementById('projectionsCard');
+  if(!card) return;
+  card.style.display = (document.getElementById('seasonality').value === 'Projections / Forecast Provided') ? 'block' : 'none';
+}
+document.getElementById('seasonality').addEventListener('change', toggleProjectionsSection);
+function parseProjectionsCsv(text){
+  const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length);
+  if(lines.length < 2) return [];
+  const delim = lines[0].includes('\t') ? '\t' : ',';
+  const headers = lines[0].split(delim).map(h=>h.trim().toLowerCase());
+  const col = { label:-1, palletsIn:-1, palletsOut:-1, ordersMonth:-1, linesPerOrder:-1, unitsPerOrder:-1, returnsMonth:-1 };
+  headers.forEach((h,i)=>{
+    if(col.label<0 && /month|period|week|date/.test(h)) col.label = i;
+    if(col.palletsIn<0 && /pallet/.test(h) && /(in|rec)/.test(h)) col.palletsIn = i;
+    if(col.palletsOut<0 && /pallet/.test(h) && /(out|ship)/.test(h)) col.palletsOut = i;
+    if(col.ordersMonth<0 && /order/.test(h)) col.ordersMonth = i;
+    if(col.linesPerOrder<0 && /line/.test(h)) col.linesPerOrder = i;
+    if(col.unitsPerOrder<0 && /unit/.test(h)) col.unitsPerOrder = i;
+    if(col.returnsMonth<0 && /return/.test(h)) col.returnsMonth = i;
+  });
+  if(col.palletsIn<0 && col.palletsOut<0 && col.ordersMonth<0) return [];
+  const rows = [];
+  for(let i=1;i<lines.length;i++){
+    const cells = lines[i].split(delim).map(c=>c.trim());
+    if(!cells.length || cells.every(c=>c==='')) continue;
+    const num = idx => (idx>=0 && cells[idx]!==undefined && cells[idx]!=='') ? (parseFloat(cells[idx].replace(/[^0-9.\-]/g,''))||0) : null;
+    rows.push({
+      label: col.label>=0 ? cells[col.label] : ('Period ' + i),
+      palletsIn: num(col.palletsIn), palletsOut: num(col.palletsOut), ordersMonth: num(col.ordersMonth),
+      linesPerOrder: num(col.linesPerOrder), unitsPerOrder: num(col.unitsPerOrder), returnsMonth: num(col.returnsMonth)
+    });
+  }
+  return rows;
+}
+function renderProjectionsResults(rows){
+  const resultsEl = document.getElementById('projectionsResults');
+  if(!resultsEl) return;
+  if(!rows || !rows.length){ resultsEl.innerHTML = ''; return; }
+  const baseInp = getInputs();
+  const computed = rows.map(r=>{
+    const inp = Object.assign({}, baseInp, {
+      palletsIn: r.palletsIn!=null ? r.palletsIn : baseInp.palletsIn,
+      palletsOut: r.palletsOut!=null ? r.palletsOut : baseInp.palletsOut,
+      ordersMonth: r.ordersMonth!=null ? r.ordersMonth : baseInp.ordersMonth,
+      linesPerOrder: r.linesPerOrder!=null ? r.linesPerOrder : baseInp.linesPerOrder,
+      unitsPerOrder: r.unitsPerOrder!=null ? r.unitsPerOrder : baseInp.unitsPerOrder,
+      returnsMonth: r.returnsMonth!=null ? r.returnsMonth : baseInp.returnsMonth
+    });
+    return { label: r.label, inp, out: computeQuote(inp) };
+  });
+  const avgPrice = computed.reduce((s,c)=>s+c.out.priceMonth,0) / computed.length;
+  const peak = computed.reduce((a,b)=> b.out.priceMonth > a.out.priceMonth ? b : a, computed[0]);
+  const low = computed.reduce((a,b)=> b.out.priceMonth < a.out.priceMonth ? b : a, computed[0]);
+  let html = `<table style="margin-top:10px;"><thead><tr><th>Period</th><th>Pallets In</th><th>Pallets Out</th><th>Orders</th><th>Total Cost</th><th>Price (${baseInp.marginPct}% margin)</th><th>$/Pallet</th></tr></thead><tbody>`;
+  computed.forEach(c=>{
+    html += `<tr><td>${esc(c.label)}</td><td>${fmtNum(c.inp.palletsIn)}</td><td>${fmtNum(c.inp.palletsOut)}</td><td>${fmtNum(c.inp.ordersMonth)}</td><td>${fmt$(c.out.totalCostMonth)}</td><td>${fmt$(c.out.priceMonth)}</td><td>${fmt$(c.out.pricePerPallet)}</td></tr>`;
+  });
+  html += `</tbody></table>
+    <div class="out-cards" style="margin-top:10px;">
+      <div class="out-card"><div class="val">${computed.length}</div><div class="lbl">Periods Detected</div></div>
+      <div class="out-card"><div class="val">${fmt$(avgPrice)}</div><div class="lbl">Avg Projected Price / Period</div></div>
+      <div class="out-card"><div class="val">${fmt$(peak.out.priceMonth)}</div><div class="lbl">Peak — ${esc(peak.label)}</div></div>
+      <div class="out-card"><div class="val">${fmt$(low.out.priceMonth)}</div><div class="lbl">Lowest — ${esc(low.label)}</div></div>
+    </div>
+    <div class="note" style="margin-top:8px;">Priced using your current Cost &amp; Margin, Regional Benchmark, and Process Time Standard inputs — only pallets/orders/lines/units/returns are swapped in per period from the uploaded file. Any column not found in the file falls back to the value currently set in Monthly Operating Volume.</div>`;
+  resultsEl.innerHTML = html;
+}
+function onProjectionsDetected(text){
+  const rows = parseProjectionsCsv(text);
+  lastProjectionRows = rows;
+  if(!rows.length){
+    document.getElementById('projectionsInfo').innerHTML += '<div>File loaded — couldn\'t auto-detect period/volume columns (expected something like Month, Pallets In, Pallets Out, Orders). Review the preview below and enter representative volumes manually in Monthly Operating Volume above.</div>';
+    document.getElementById('projectionsResults').innerHTML = '';
+    return;
+  }
+  document.getElementById('projectionsInfo').innerHTML += `<div>Detected ${rows.length} period(s) with volume data — calculated results below.</div>`;
+  renderProjectionsResults(rows);
+}
+handleTextFile('projectionsFile','projectionsInfo','projectionsPreview', onProjectionsDetected);
+
+/* ============================================================
    CORE CALC ENGINE
    ============================================================ */
 function getInputs(){
@@ -1065,6 +1164,7 @@ function calc(){
   drawChart(out);
   updateSowSteps(inp);
   renderRfqProgress(inp, out);
+  if(lastProjectionRows.length) renderProjectionsResults(lastProjectionRows);
   return { inp, out };
 }
 
@@ -1476,6 +1576,7 @@ function init(){
   document.getElementById('quoteDate').value = new Date().toISOString().slice(0,10);
   document.getElementById('addendumEffectiveDate').value = new Date().toISOString().slice(0,10);
   renderWarehouseOptions();
+  toggleProjectionsSection();
   renderRegionTable();
   renderVendorTable();
   applyRegionDefaults();
