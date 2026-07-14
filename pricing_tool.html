@@ -175,7 +175,7 @@
 <section class="panel" id="panel-benchmarks">
   <div class="card">
     <h2>National &amp; Regional Cost Benchmarks</h2>
-    <div class="sub">Editable defaults compiled from public industry data (industrial real estate reports, EIA electricity data, warehouse labor surveys). Selecting a region on the RFQ tab loads these numbers automatically — adjust them any time.</div>
+    <div class="sub">Editable defaults compiled from public industry data (industrial real estate reports, EIA electricity data, warehouse labor surveys). Showing the region selected on the RFQ Intake tab — change the "Region / Market" field there to view benchmarks for a different location.</div>
     <table id="regionTable">
       <thead><tr><th>Region</th><th>Avg Rent ($/sqft/yr)</th><th>Avg Utilities ($/sqft/yr)</th><th>Avg Labor ($/hr, loaded)</th><th>Source</th></tr></thead>
       <tbody></tbody>
@@ -407,7 +407,9 @@ document.getElementById('tabNav').addEventListener('click', e=>{
 function renderRegionTable(){
   const tbody = document.querySelector('#regionTable tbody');
   tbody.innerHTML = '';
-  Object.keys(REGIONS).forEach(key=>{
+  const selectedKey = document.getElementById('region').value;
+  const keysToShow = REGIONS[selectedKey] ? [selectedKey] : Object.keys(REGIONS);
+  keysToShow.forEach(key=>{
     const r = REGIONS[key];
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${r.label}</td>
@@ -428,6 +430,7 @@ function applyRegionDefaults(){
   document.getElementById('laborRatePerHr').value = r.labor;
   document.getElementById('regionBadge1').textContent = r.label;
   document.getElementById('regionBadge2').textContent = r.label;
+  renderRegionTable();
   calc();
 }
 document.getElementById('region').addEventListener('change', applyRegionDefaults);
