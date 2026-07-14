@@ -294,21 +294,22 @@
     <h2>Monthly Operating Volume</h2>
     <div class="sub">Used with industry-standard process times (Regional Benchmarks tab) to estimate labor hours required.</div>
     <div class="grid3">
-      <div class="field"><label>Pallets Received / Month</label><input type="number" id="palletsIn" value="800"></div>
-      <div class="field"><label>Pallets Shipped / Month</label><input type="number" id="palletsOut" value="750"></div>
-      <div class="field"><label>Orders / Month</label><input type="number" id="ordersMonth" value="6000"></div>
-      <div class="field"><label>Avg Lines / Order</label><input type="number" id="linesPerOrder" value="3"></div>
-      <div class="field"><label>Avg Units / Order</label><input type="number" id="unitsPerOrder" value="5"></div>
-      <div class="field"><label>Returns / Month</label><input type="number" id="returnsMonth" value="120"></div>
+      <div class="field"><label>Pallets Received / Month</label><input type="number" id="palletsIn" placeholder="e.g. 800"></div>
+      <div class="field"><label>Pallets Shipped / Month</label><input type="number" id="palletsOut" placeholder="e.g. 750"></div>
+      <div class="field"><label>Orders / Month</label><input type="number" id="ordersMonth" placeholder="e.g. 6000"></div>
+      <div class="field"><label>Avg Lines / Order</label><input type="number" id="linesPerOrder" placeholder="e.g. 3"></div>
+      <div class="field"><label>Avg Units / Order</label><input type="number" id="unitsPerOrder" placeholder="e.g. 5"></div>
+      <div class="field"><label>Returns / Month</label><input type="number" id="returnsMonth" placeholder="e.g. 120"></div>
     </div>
   </div>
 
   <div class="card">
     <div class="flex-between"><h2 style="margin:0;">Space &amp; Dock Requirements Calculator</h2><span class="note">Answer these to size the deal instead of guessing</span></div>
-    <div class="sub">Turns throughput into an actual space and dock door requirement, and tells you what to bill for storage to protect your margin target. Defaults are common warehousing rules of thumb — adjust to match this customer's real pallet profile and truck mix, then apply the results into Building Specs above.</div>
+    <div class="sub">Turns throughput into an actual space and dock door requirement, and tells you what to bill for storage to protect your margin target. Fill in this customer's real numbers below — nothing is pre-filled, so the recommendations only reflect actual deal data, not sample defaults.</div>
     <div class="grid3">
       <div class="field"><label>Storage Type</label>
         <select id="storageType" onchange="applyStorageTypeDefault()">
+          <option value="" selected>— Select Storage Type —</option>
           <option>Bulk 1 High</option>
           <option>Bulk 2 High</option>
           <option>Bulk 3-4 High</option>
@@ -317,13 +318,13 @@
           <option>Racking Over 60"</option>
         </select>
       </div>
-      <div class="field"><label>Avg Dwell Time per Pallet (days in storage)</label><input type="number" id="dwellTimeDays" value="30"></div>
-      <div class="field"><label>Peak Season Buffer %</label><input type="number" id="peakMultiplierPct" value="25"></div>
-      <div class="field"><label>Sq Ft per Pallet Position <span class="note">(auto-set by Storage Type, editable)</span></label><input type="number" id="sqftPerPallet" value="13"></div>
-      <div class="field"><label>Extra Space Overhead % (aisles, staging, office)</label><input type="number" id="spaceOverheadPct" value="20"></div>
-      <div class="field"><label>Pallets per Truck</label><input type="number" id="palletsPerTruck" value="26"></div>
-      <div class="field"><label>Operating Days / Month</label><input type="number" id="operatingDaysMonth" value="22"></div>
-      <div class="field"><label>Dock Throughput (trucks / door / day)</label><input type="number" id="dockCapacityPerDoor" value="10"></div>
+      <div class="field"><label>Avg Dwell Time per Pallet (days in storage)</label><input type="number" id="dwellTimeDays" placeholder="e.g. 30"></div>
+      <div class="field"><label>Peak Season Buffer %</label><input type="number" id="peakMultiplierPct" placeholder="e.g. 25"></div>
+      <div class="field"><label>Sq Ft per Pallet Position <span class="note">(auto-set by Storage Type, editable)</span></label><input type="number" id="sqftPerPallet" placeholder="pick Storage Type"></div>
+      <div class="field"><label>Extra Space Overhead % (aisles, staging, office)</label><input type="number" id="spaceOverheadPct" placeholder="e.g. 20"></div>
+      <div class="field"><label>Pallets per Truck</label><input type="number" id="palletsPerTruck" placeholder="e.g. 26"></div>
+      <div class="field"><label>Operating Days / Month</label><input type="number" id="operatingDaysMonth" placeholder="e.g. 22"></div>
+      <div class="field"><label>Dock Throughput (trucks / door / day)</label><input type="number" id="dockCapacityPerDoor" placeholder="e.g. 10"></div>
     </div>
     <div class="out-cards" id="spaceDockResults" style="margin-top:10px;"></div>
     <div class="row" style="margin-top:10px; gap:8px;">
@@ -1206,6 +1207,13 @@ function computeSpaceDock(inp){
 
 let lastSpaceDock = null;
 function renderSpaceDock(inp){
+  const hasCalcInputs = inp.palletsIn>0 || inp.palletsOut>0 || val('dwellTimeDays')>0 || val('sqftPerPallet')>0;
+  if(!hasCalcInputs){
+    lastSpaceDock = null;
+    document.getElementById('spaceDockResults').innerHTML = `<div class="note">Enter this customer's Monthly Operating Volume and the calculator inputs above to see space, dock, and storage-rate recommendations — nothing is calculated until real numbers are in.</div>`;
+    document.getElementById('spaceDockNote').textContent = '';
+    return null;
+  }
   const sd = computeSpaceDock(inp);
   lastSpaceDock = sd;
   const sqftFlag = Math.abs(sd.recommendedSqft - inp.allocatedSqft) > inp.allocatedSqft*0.15;
