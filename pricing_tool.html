@@ -217,6 +217,15 @@
 <!-- ============ TAB 1: RFQ INTAKE ============ -->
 <section class="panel" id="panel-rfq">
 
+  <div class="card" style="padding:12px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+    <div class="note">This RFQ draft auto-saves every 30 seconds in this browser, so a refresh won't lose your work.</div>
+    <div class="row" style="gap:8px; align-items:center;">
+      <span class="note" id="draftSavedNote"></span>
+      <button class="btn secondary" onclick="saveDraftNow()">💾 Save Draft Now</button>
+      <button class="btn danger" onclick="clearDraftQuote()">🆕 New Quote</button>
+    </div>
+  </div>
+
   <div class="card" id="rfqSectionScope">
     <h2>Customer &amp; Deal Info</h2>
     <div class="grid">
@@ -344,12 +353,21 @@
   <div class="card">
     <div class="flex-between"><h2 style="margin:0;">Scope of Work — Process Steps &amp; Guesstimates</h2><span class="note">Auto-filled from volumes above</span></div>
     <div class="sub">Build the SOW as a sequence of process steps. The standard steps below auto-calculate a time &amp; cost guesstimate from your volumes and the Process Time Standards / labor rate (Regional Benchmarks tab) — edit any Hours or Cost cell to lock in your own number instead, or add custom steps for anything not covered.</div>
-    <table>
+    <div class="upload-box">
+      <div><strong>Upload Custom Process Steps</strong> (.csv or .txt — one step per row: Step, Est Hours/Month, Cost/Month, Notes) — <a href="#" onclick="downloadSowStepsTemplate(); return false;">📥 Download Template (.csv)</a>. Adds to the steps below (e.g. trucking, drayage, special handling) — doesn't replace the auto-calculated ones.</div>
+      <input type="file" id="sowStepsFile">
+      <div id="sowStepsFileInfo" class="note"></div>
+    </div>
+    <table style="margin-top:12px;">
       <thead><tr><th>Step</th><th>Est. Hours / Month</th><th>Est. Cost / Month</th><th>Notes</th><th></th></tr></thead>
       <tbody id="sowStepsBody"></tbody>
       <tfoot><tr class="sow-totals-row"><td>Total</td><td id="sowTotalHours"></td><td id="sowTotalCost"></td><td colspan="2"></td></tr></tfoot>
     </table>
-    <button class="btn secondary" style="margin-top:8px;" onclick="addSowStep()">+ Add Step</button>
+    <div class="row" style="margin-top:8px; gap:8px; align-items:center;">
+      <button class="btn secondary" onclick="addSowStep()">+ Add Step</button>
+      <button class="btn" onclick="saveSowStepsNow()">💾 Save Steps</button>
+      <span class="note" id="sowStepsSavedNote"></span>
+    </div>
   </div>
 
   <div class="card">
@@ -1013,6 +1031,63 @@ function removeSowStep(i){
   sowSteps.splice(i,1);
   saveSowSteps();
   renderSowSteps();
+}
+function saveSowStepsNow(){
+  saveSowSteps();
+  const note = document.getElementById('sowStepsSavedNote');
+  if(note){
+    note.textContent = '✓ Saved ' + new Date().toLocaleTimeString();
+    setTimeout(()=>{ if(note.textContent.indexOf('Saved')>-1) note.textContent=''; }, 4000);
+  }
+}
+function downloadSowStepsTemplate(){
+  const csv = 'Step,Est Hours/Month,Cost/Month,Notes\r\nDrayage / Trucking,40,1200,Local drayage from port\r\nSpecial Handling,10,350,Fragile or oversized items\r\n';
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'sow_process_steps_template.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+function parseSowStepsCsv(text){
+  const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length);
+  const rows = [];
+  lines.forEach(line=>{
+    if(/^step\b/i.test(line)) return; // skip header row
+    const delim = line.includes('\t') ? '\t' : ',';
+    const parts = line.split(delim).map(p=>p.trim());
+    if(parts.length<3) return;
+    const name = parts[0];
+    const hours = parseFloat(parts[1].replace(/[,$]/g,''));
+    const cost = parseFloat(parts[2].replace(/[,$]/g,''));
+    if(!name || isNaN(hours) || isNaN(cost)) return;
+    const notes = parts.slice(3).join(', ');
+    rows.push({ name, hours, cost, notes });
+  });
+  return rows;
+}
+let lastSowStepsImportRows = [];
+handleTextFile('sowStepsFile','sowStepsFileInfo', null, text=>{
+  const rows = parseSowStepsCsv(text);
+  const infoEl = document.getElementById('sowStepsFileInfo');
+  if(rows.length){
+    lastSowStepsImportRows = rows;
+    infoEl.innerHTML += `<div>Detected ${rows.length} step(s) totaling ${fmt$(rows.reduce((s,r)=>s+r.cost,0))}/month — <button class="btn secondary" style="padding:3px 8px;font-size:11px;" onclick="applySowStepsImport()">Add to Steps Table</button></div>`;
+  } else {
+    infoEl.innerHTML += `<div>File loaded — no step rows detected. Use the template format: Step, Est Hours/Month, Cost/Month, Notes.</div>`;
+  }
+});
+function applySowStepsImport(){
+  if(!lastSowStepsImportRows.length) return;
+  lastSowStepsImportRows.forEach((r,i)=>{
+    sowSteps.push({ id:'custom_'+Date.now()+'_'+i, name:r.name, auto:false, autoSource:null, hours:r.hours, cost:r.cost, notes:r.notes||'' });
+  });
+  saveSowSteps();
+  renderSowSteps();
+  lastSowStepsImportRows = [];
 }
 
 /* ============================================================
@@ -1877,6 +1952,55 @@ function drawChart(out){
 /* ============================================================
    PRICING HISTORY
    ============================================================ */
+/* ============================================================
+   RFQ DRAFT AUTO-SAVE (in-progress form, separate from Pricing History)
+   ============================================================ */
+// Fields used by the Space & Dock Calculator aren't part of getInputs(), so save them separately.
+const DRAFT_EXTRA_FIELD_IDS = ['dwellTimeDays','peakMultiplierPct','sqftPerPallet','spaceOverheadPct','palletsPerTruck','operatingDaysMonth','dockCapacityPerDoor'];
+function collectDraftSnapshot(){
+  const inp = getInputs();
+  const extra = {};
+  DRAFT_EXTRA_FIELD_IDS.forEach(id=>{ const el = document.getElementById(id); if(el) extra[id] = el.value; });
+  return { inputs: inp, extra, sowSteps, savedAt: new Date().toISOString() };
+}
+function saveDraftNow(){
+  save('unisco_draft_quote_v1', collectDraftSnapshot());
+  const note = document.getElementById('draftSavedNote');
+  if(note) note.textContent = 'Last saved ' + new Date().toLocaleTimeString();
+}
+function restoreDraftQuote(){
+  const draft = load('unisco_draft_quote_v1', null);
+  if(!draft || !draft.inputs) return false;
+  const inp = draft.inputs;
+  Object.keys(inp).forEach(k=>{
+    if(k === 'quoteDate') return; // Quote Date always reflects today, never a restored draft value
+    const el = document.getElementById(k);
+    if(el && el.type!=='file') el.value = inp[k];
+  });
+  const whSel = document.getElementById('warehouseName');
+  if(whSel && whSel.value !== inp.warehouseName){
+    whSel.value = '__other__';
+    const otherText = document.getElementById('warehouseNameOtherText');
+    if(otherText) otherText.value = inp.warehouseName || '';
+  }
+  handleWarehouseChange();
+  if(inp.marginPct!=null){ const ms=document.getElementById('marginSlider'); if(ms) ms.value = inp.marginPct; }
+  if(draft.extra){
+    Object.keys(draft.extra).forEach(id=>{ const el=document.getElementById(id); if(el) el.value = draft.extra[id]; });
+  }
+  if(draft.sowSteps && draft.sowSteps.length) sowSteps = draft.sowSteps;
+  toggleProjectionsSection();
+  const note = document.getElementById('draftSavedNote');
+  if(note && draft.savedAt) note.textContent = 'Restored draft from ' + new Date(draft.savedAt).toLocaleString();
+  return true;
+}
+function clearDraftQuote(){
+  if(!confirm('Clear this draft and start a new blank RFQ? Anything not saved to Pricing History will be lost.')) return;
+  localStorage.removeItem('unisco_draft_quote_v1');
+  location.reload();
+}
+setInterval(saveDraftNow, 30000);
+
 function saveQuote(){
   const {inp, out} = calc();
   if(!inp.customerName || !inp.warehouseName){ alert('Enter a Customer Name and Warehouse Name before saving.'); return; }
@@ -2230,6 +2354,7 @@ function init(){
   renderRegionTable();
   renderVendorTable();
   applyRegionDefaults();
+  restoreDraftQuote();
   renderHistory();
   populateAddendumDropdown();
   renderDashboard();
