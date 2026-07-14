@@ -279,6 +279,13 @@
     </div>
   </div>
 
+  <div class="card">
+    <div class="flex-between"><h2 style="margin:0;">AI Pricing Advisor</h2><span class="note">Optional — uses current quote inputs, not stored anywhere</span></div>
+    <div class="sub">Get clarifying questions to ask this customer and a suggested margin with reasoning, based on this quote's inputs, cost build-up, and industry benchmark check.</div>
+    <button class="btn" id="aiAdviceBtn" onclick="getAiAdvice()">🤖 Get AI Suggestion</button>
+    <div id="aiAdviceOutput" class="preview-box" style="display:none; margin-top:10px; white-space:pre-wrap;"></div>
+  </div>
+
   <div class="flex-between">
     <button class="btn secondary" onclick="goTab('rfq')">← Back to RFQ</button>
     <button class="btn" onclick="saveQuote()">💾 Save Quote to Pricing History</button>
@@ -628,6 +635,37 @@ function calc(){
 
   drawChart(out);
   return { inp, out };
+}
+
+/* ============================================================
+   AI PRICING ADVISOR (uses window.cowork.askClaude if available)
+   ============================================================ */
+async function getAiAdvice(){
+  const btn = document.getElementById('aiAdviceBtn');
+  const outBox = document.getElementById('aiAdviceOutput');
+  if(!window.cowork || typeof window.cowork.askClaude !== 'function'){
+    outBox.style.display = 'block';
+    outBox.textContent = 'AI advisor isn\'t available in this view (window.cowork.askClaude not found). This feature only works when the tool is opened as a Cowork artifact.';
+    return;
+  }
+  const {inp, out} = calc();
+  const prompt = `You are a pricing advisor for a 3PL warehouse operator reviewing one customer quote before it goes out.
+Given the quote inputs and cost breakdown provided as data, respond in plain text (no markdown) with exactly two short sections:
+1) "Questions to ask" - 2 to 3 specific clarifying questions the analyst should ask this customer before finalizing, based on gaps, risk, or unusual figures in the inputs (e.g. seasonality vs contract length, missing SLA detail, unusually high/low volume per sq ft).
+2) "Suggested margin" - a specific margin percentage recommendation (stay within the target range ${inp.targetMarginMin}-${inp.targetMarginMax}% unless you state a clear reason to deviate), with 1-2 sentences of justification referencing the cost breakdown and the industry benchmark comparison.
+Keep the whole response under 120 words.`;
+  const data = [{ customer: inp.customerName, warehouse: inp.warehouseName, region: REGIONS[inp.regionKey]?.label, customerType: inp.customerType, operationType: inp.operationType, seasonality: inp.seasonality, contractLengthMonths: inp.contractLength, allocatedSqft: inp.allocatedSqft, palletsIn: inp.palletsIn, palletsOut: inp.palletsOut, ordersMonth: inp.ordersMonth, totalCostMonth: out.totalCostMonth, currentMarginPct: inp.marginPct, pricePerPallet: out.pricePerPallet, pricePerOrder: out.pricePerOrder, targetMarginMin: inp.targetMarginMin, targetMarginMax: inp.targetMarginMax, industryPalletRangeLow: inp.benchPalletLow, industryPalletRangeHigh: inp.benchPalletHigh }];
+  btn.disabled = true; btn.textContent = 'Thinking…';
+  outBox.style.display = 'block';
+  outBox.textContent = 'Asking...';
+  try {
+    const raw = await window.cowork.askClaude(prompt, data);
+    const text = typeof raw === 'string' ? raw : (raw?.text || raw?.content || JSON.stringify(raw));
+    outBox.textContent = text;
+  } catch(e) {
+    outBox.textContent = 'AI advisor request failed: ' + (e?.message || e);
+  }
+  btn.disabled = false; btn.textContent = '🤖 Get AI Suggestion';
 }
 
 let costChart = null;
