@@ -134,10 +134,11 @@
   <button data-tab="dashboard" class="active">Dashboard</button>
   <button data-tab="rfq">1. RFQ Intake</button>
   <button data-tab="benchmarks">2. Regional Benchmarks</button>
-  <button data-tab="cost">3. Cost &amp; Margin</button>
-  <button data-tab="history">4. Pricing History</button>
-  <button data-tab="addendum">5. SOW Addendum</button>
-  <button data-tab="export">6. Export</button>
+  <button data-tab="facilitypnl">3. Facility P&amp;L</button>
+  <button data-tab="cost">4. Cost &amp; Margin</button>
+  <button data-tab="history">5. Pricing History</button>
+  <button data-tab="addendum">6. SOW Addendum</button>
+  <button data-tab="export">7. Export</button>
 </nav>
 
 <main>
@@ -204,6 +205,7 @@
     <div class="quicknav">
       <a class="qn-tile" onclick="goTab('rfq')"><span class="qn-icon">📝</span>New RFQ</a>
       <a class="qn-tile" onclick="goTab('benchmarks')"><span class="qn-icon">📍</span>Regional Benchmarks</a>
+      <a class="qn-tile" onclick="goTab('facilitypnl')"><span class="qn-icon">🧾</span>Facility P&amp;L</a>
       <a class="qn-tile" onclick="goTab('cost')"><span class="qn-icon">💰</span>Cost &amp; Margin</a>
       <a class="qn-tile" onclick="goTab('history')"><span class="qn-icon">🗂️</span>Pricing History</a>
       <a class="qn-tile" onclick="goTab('addendum')"><span class="qn-icon">📄</span>SOW Addendum</a>
@@ -416,7 +418,45 @@
   </div>
 </section>
 
-<!-- ============ TAB 3: COST & MARGIN ============ -->
+<!-- ============ TAB 3: FACILITY P&L ============ -->
+<section class="panel" id="panel-facilitypnl">
+  <div class="card">
+    <div class="flex-between"><h2 style="margin:0;">Facility P&amp;L Import</h2><span class="note">Capture true monthly overhead to know your break-even rate</span></div>
+    <div class="sub">Enter or upload the full facility P&amp;L — rent, electricity/lights, water, internet, insurance, maintenance, anything else it costs to run this building — before pricing any customer against it.</div>
+    <div class="upload-box">
+      <div><strong>Upload P&amp;L / Overhead Statement</strong> (.csv, .txt work best for auto-detect — one line item per row, label + monthly $ amount; other file types attached as reference only)</div>
+      <input type="file" id="pnlFile">
+      <div id="pnlInfo" class="note"></div>
+      <div id="pnlPreview"></div>
+    </div>
+    <table style="margin-top:12px;">
+      <thead><tr><th>Overhead Line Item</th><th>Monthly $</th><th></th></tr></thead>
+      <tbody id="pnlLinesBody"></tbody>
+      <tfoot><tr style="font-weight:700; background:var(--card-alt);"><td>Total Monthly Overhead</td><td id="pnlTotalCell" style="text-align:right; padding-right:16px;"></td><td></td></tr></tfoot>
+    </table>
+    <button class="btn secondary" style="margin-top:8px;" onclick="addPnlLine()">+ Add Line Item</button>
+  </div>
+
+  <div class="card">
+    <div class="flex-between"><h2 style="margin:0;">Facility Occupancy &amp; Break-Even</h2><span class="note">How many customers, how much space, how much is free</span></div>
+    <div class="sub">See how many customers share this facility, how much square footage each one uses, how much is sitting free, and what you need to charge per sq ft just to break even.</div>
+    <div class="grid3">
+      <div class="field"><label>Total Facility Sq Ft</label><input type="number" id="pnlTotalSqft" placeholder="e.g. 250000"></div>
+    </div>
+    <table style="margin-top:12px;">
+      <thead><tr><th>Customer</th><th>Sq Ft Allocated</th><th></th></tr></thead>
+      <tbody id="pnlCustomersBody"></tbody>
+    </table>
+    <div class="row" style="margin-top:8px; gap:8px;">
+      <button class="btn secondary" onclick="addPnlCustomer()">+ Add Customer</button>
+      <button class="btn secondary" onclick="loadPnlCustomersFromHistory()">↺ Load Customers from Pricing History</button>
+    </div>
+    <div class="out-cards" id="pnlOccupancyResults" style="margin-top:12px;"></div>
+    <div class="note" id="pnlOccupancyNote" style="margin-top:8px;"></div>
+  </div>
+</section>
+
+<!-- ============ TAB 4: COST & MARGIN ============ -->
 <section class="panel" id="panel-cost">
   <div class="card">
     <h2>Facility &amp; Overhead Costs</h2>
@@ -488,7 +528,7 @@
   </div>
 </section>
 
-<!-- ============ TAB 4: PRICING HISTORY ============ -->
+<!-- ============ TAB 5: PRICING HISTORY ============ -->
 <section class="panel" id="panel-history">
   <div class="card">
     <h2>Stored Pricing History</h2>
@@ -503,7 +543,7 @@
   </div>
 </section>
 
-<!-- ============ TAB 5: SOW ADDENDUM ============ -->
+<!-- ============ TAB 6: SOW ADDENDUM ============ -->
 <section class="panel" id="panel-addendum">
   <div class="card">
     <h2>Scope of Work — Revision Addendum</h2>
@@ -539,7 +579,7 @@
   </div>
 </section>
 
-<!-- ============ TAB 6: EXPORT ============ -->
+<!-- ============ TAB 7: EXPORT ============ -->
 <section class="panel" id="panel-export">
   <div class="card">
     <h2>Export</h2>
@@ -691,6 +731,7 @@ function goTab(name){
   if(name==='history') renderHistory();
   if(name==='addendum') populateAddendumDropdown();
   if(name==='dashboard') renderDashboard();
+  if(name==='facilitypnl'){ renderPnlLines(); renderPnlCustomers(); }
 }
 
 /* ============================================================
@@ -989,6 +1030,135 @@ handleTextFile('buildingSpecFile','buildingSpecInfo','buildingSpecPreview', text
 });
 handleTextFile('sowFile','sowFileInfo', null, null);
 handleTextFile('sowOriginalFile','sowOriginalPreview_info','sowOriginalPreview', null);
+
+/* ============================================================
+   FACILITY P&L IMPORT + OCCUPANCY / BREAK-EVEN
+   ============================================================ */
+function defaultPnlLines(){
+  return [
+    {label:'Rent', amount:0},
+    {label:'Electricity / Lights', amount:0},
+    {label:'Water', amount:0},
+    {label:'Internet / Telecom', amount:0},
+    {label:'Insurance', amount:0},
+    {label:'Maintenance / Other', amount:0}
+  ];
+}
+let pnlLines = load('unisco_pnl_lines_v1', null) || defaultPnlLines();
+let pnlCustomers = load('unisco_pnl_customers_v1', []);
+
+function savePnlLines(){ save('unisco_pnl_lines_v1', pnlLines); }
+function savePnlCustomers(){ save('unisco_pnl_customers_v1', pnlCustomers); }
+
+function renderPnlLines(){
+  const tbody = document.getElementById('pnlLinesBody');
+  if(!tbody) return;
+  tbody.innerHTML = pnlLines.map((l,i)=>`
+    <tr>
+      <td><input type="text" value="${esc(l.label)}" onchange="pnlLines[${i}].label=this.value; savePnlLines();"></td>
+      <td><input type="number" value="${l.amount||0}" onchange="pnlLines[${i}].amount=parseFloat(this.value)||0; savePnlLines(); renderPnlLines();"></td>
+      <td><button class="btn danger" style="padding:3px 8px;font-size:11px;" onclick="removePnlLine(${i})">✕</button></td>
+    </tr>`).join('');
+  const total = pnlLines.reduce((s,l)=>s+(parseFloat(l.amount)||0),0);
+  const cell = document.getElementById('pnlTotalCell');
+  if(cell) cell.textContent = fmt$(total);
+  renderPnlOccupancy();
+  return total;
+}
+function addPnlLine(){ pnlLines.push({label:'New Line Item', amount:0}); savePnlLines(); renderPnlLines(); }
+function removePnlLine(i){ pnlLines.splice(i,1); savePnlLines(); renderPnlLines(); }
+
+function renderPnlCustomers(){
+  const tbody = document.getElementById('pnlCustomersBody');
+  if(!tbody) return;
+  tbody.innerHTML = pnlCustomers.map((c,i)=>`
+    <tr>
+      <td><input type="text" value="${esc(c.name)}" placeholder="Customer name" onchange="pnlCustomers[${i}].name=this.value; savePnlCustomers();"></td>
+      <td><input type="number" value="${c.sqft||0}" onchange="pnlCustomers[${i}].sqft=parseFloat(this.value)||0; savePnlCustomers(); renderPnlOccupancy();"></td>
+      <td><button class="btn danger" style="padding:3px 8px;font-size:11px;" onclick="removePnlCustomer(${i})">✕</button></td>
+    </tr>`).join('');
+  renderPnlOccupancy();
+}
+function addPnlCustomer(){ pnlCustomers.push({name:'', sqft:0}); savePnlCustomers(); renderPnlCustomers(); }
+function removePnlCustomer(i){ pnlCustomers.splice(i,1); savePnlCustomers(); renderPnlCustomers(); }
+
+function loadPnlCustomersFromHistory(){
+  const seen = {};
+  history.forEach(h=>{
+    const name = h.inputs && h.inputs.customerName;
+    if(!name) return;
+    seen[name] = h.inputs.allocatedSqft || 0; // last saved quote per customer wins
+  });
+  const names = Object.keys(seen);
+  if(!names.length){ alert('No saved quotes yet — save a quote in Pricing History first, or add customers manually below.'); return; }
+  pnlCustomers = names.map(name=>({ name, sqft: seen[name] }));
+  savePnlCustomers();
+  renderPnlCustomers();
+}
+
+function renderPnlOccupancy(){
+  const totalSqft = val('pnlTotalSqft');
+  const totalOverhead = pnlLines.reduce((s,l)=>s+(parseFloat(l.amount)||0),0);
+  const allocatedSqft = pnlCustomers.reduce((s,c)=>s+(parseFloat(c.sqft)||0),0);
+  const freeSqft = Math.max(0, totalSqft - allocatedSqft);
+  const occupancyPct = totalSqft>0 ? (allocatedSqft/totalSqft*100) : 0;
+  const breakEvenPerSqftTotal = totalSqft>0 ? totalOverhead/totalSqft : 0;
+  const breakEvenPerSqftAllocated = allocatedSqft>0 ? totalOverhead/allocatedSqft : 0;
+  const vacantCostMonth = freeSqft * breakEvenPerSqftTotal;
+  const el = document.getElementById('pnlOccupancyResults');
+  if(!el) return;
+  el.innerHTML = `
+    <div class="out-card"><div class="val">${pnlCustomers.length}</div><div class="lbl">Customers</div></div>
+    <div class="out-card"><div class="val">${fmtNum(allocatedSqft)}</div><div class="lbl">Sq Ft Allocated</div></div>
+    <div class="out-card"><div class="val">${fmtNum(freeSqft)}</div><div class="lbl">Sq Ft Free / Vacant</div></div>
+    <div class="out-card"><div class="val">${occupancyPct.toFixed(1)}%</div><div class="lbl">Occupancy</div></div>
+    <div class="out-card"><div class="val">${fmt$(breakEvenPerSqftTotal)}</div><div class="lbl">Break-Even $/Sq Ft/Month (whole facility)</div></div>
+    <div class="out-card"><div class="val">${fmt$(breakEvenPerSqftAllocated)}</div><div class="lbl">Break-Even $/Sq Ft/Month (occupied only)</div></div>
+  `;
+  const note = document.getElementById('pnlOccupancyNote');
+  if(!note) return;
+  if(totalSqft<=0){
+    note.textContent = 'Enter Total Facility Sq Ft above to see occupancy and break-even math.';
+  } else if(freeSqft>0){
+    note.textContent = `${fmtNum(freeSqft)} sq ft (${(100-occupancyPct).toFixed(1)}%) is currently unallocated — carrying ${fmt$(vacantCostMonth)}/month in overhead that either needs new customers or gets absorbed into what you charge existing ones. "Occupied only" rate shows what you'd need to charge to cover the whole building from paying customers alone.`;
+  } else {
+    note.textContent = 'Facility is fully allocated — break-even rates above match.';
+  }
+}
+
+let lastPnlImportRows = [];
+function parsePnlFile(text){
+  const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length);
+  const rows = [];
+  lines.forEach(line=>{
+    const numMatch = line.match(/\$?\s?([\d,]+\.?\d*)\s*$|\$\s?([\d,]+\.?\d*)/);
+    if(!numMatch) return;
+    const raw = numMatch[1] || numMatch[2];
+    const amount = parseFloat(raw.replace(/,/g,''));
+    if(isNaN(amount)) return;
+    let label = line.slice(0, line.lastIndexOf(raw)).replace(/[,:\t$\s]+$/,'').trim();
+    if(!label || /^(item|line|label|category)$/i.test(label)) return; // skip header rows
+    rows.push({ label, amount });
+  });
+  return rows;
+}
+handleTextFile('pnlFile','pnlInfo','pnlPreview', text=>{
+  const rows = parsePnlFile(text);
+  const infoEl = document.getElementById('pnlInfo');
+  if(rows.length){
+    lastPnlImportRows = rows;
+    infoEl.innerHTML += `<div>Detected ${rows.length} overhead line item(s) totaling ${fmt$(rows.reduce((s,r)=>s+r.amount,0))} — <button class="btn secondary" style="padding:3px 8px;font-size:11px;" onclick="applyPnlImport()">Apply to Overhead Table</button></div>`;
+  } else {
+    infoEl.innerHTML += `<div>File loaded — no $ figures auto-detected. See preview below and enter values manually.</div>`;
+  }
+});
+function applyPnlImport(){
+  if(!lastPnlImportRows.length) return;
+  pnlLines = lastPnlImportRows.slice();
+  savePnlLines();
+  renderPnlLines();
+}
+document.getElementById('pnlTotalSqft').addEventListener('input', renderPnlOccupancy);
 
 /* ============================================================
    CUSTOMER VOLUME PROJECTIONS (shown when Seasonality = "Projections / Forecast Provided")
@@ -1749,6 +1919,8 @@ function init(){
   renderHistory();
   populateAddendumDropdown();
   renderDashboard();
+  renderPnlLines();
+  renderPnlCustomers();
   calc();
 }
 window.addEventListener('load', ()=>{
