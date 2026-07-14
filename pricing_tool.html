@@ -87,6 +87,33 @@
   .quicknav a.qn-tile { display:block; text-decoration:none; background:var(--card-alt); border:1px solid var(--border); border-radius:14px; padding:14px; text-align:center; color:#fff; font-size:12.5px; font-weight:600; cursor:pointer; }
   .quicknav a.qn-tile:hover { border-color:var(--accent); color:var(--navy); }
   .quicknav .qn-icon { font-size:20px; margin-bottom:6px; display:block; }
+  /* RFQ process tracker */
+  .rfq-steps-arc { display:flex; align-items:flex-end; gap:6px; flex-wrap:wrap; justify-content:center; padding-top:10px; }
+  .rfq-step { flex:1 1 150px; max-width:190px; background:var(--card-alt); border:1px solid var(--border); border-radius:14px; padding:14px 12px; text-align:center; cursor:pointer; transition:transform .15s ease, border-color .15s ease, opacity .15s ease; }
+  .rfq-step:hover { border-color:var(--accent); transform:translateY(-3px); }
+  #rfqStep-scope { margin-bottom:0; }
+  #rfqStep-operations { margin-bottom:16px; }
+  #rfqStep-assumptions { margin-bottom:26px; }
+  #rfqStep-costmodel { margin-bottom:16px; }
+  #rfqStep-quote { margin-bottom:0; }
+  .rfq-step-badge { width:46px; height:46px; border-radius:50%; margin:0 auto 8px; display:flex; align-items:center; justify-content:center; font-size:20px; position:relative; }
+  .rfq-step-badge.badge-purple { background:var(--navy-dk); }
+  .rfq-step-badge.badge-green { background:var(--green-bg); }
+  .rfq-step-badge.badge-amber { background:var(--amber-bg); }
+  .rfq-step-badge.badge-red { background:var(--red-bg); }
+  .rfq-step-badge.badge-accent { background:var(--accent); }
+  .rfq-step-check { position:absolute; bottom:-3px; right:-3px; width:18px; height:18px; border-radius:50%; background:var(--green); color:#0b1a10; font-size:11px; font-weight:900; display:none; align-items:center; justify-content:center; border:2px solid var(--bg); }
+  .rfq-step.complete .rfq-step-check { display:flex; }
+  .rfq-step.complete { border-color:var(--green); box-shadow:0 0 0 1px var(--green) inset, 0 0 14px rgba(34,197,94,0.22); opacity:1; }
+  .rfq-step:not(.complete) { opacity:0.7; }
+  .rfq-step-num { font-size:10px; font-weight:800; letter-spacing:.06em; color:var(--muted); text-transform:uppercase; }
+  .rfq-step-title { font-size:13px; font-weight:700; color:#fff; margin:2px 0 4px; }
+  .rfq-step-desc { font-size:11px; color:var(--muted); line-height:1.4; }
+  .rfq-step-arrow { color:var(--muted-faint); font-size:16px; align-self:center; padding-bottom:42px; }
+  @media (max-width:760px) {
+    .rfq-step-arrow { display:none; }
+    .rfq-steps-arc > .rfq-step { margin-bottom:0 !important; }
+  }
   /* SOW step builder */
   .sow-auto-tag { font-size:10px; font-weight:700; padding:1px 6px; border-radius:5px; background:rgba(170,131,219,0.16); color:var(--navy); }
   .sow-manual-tag { font-size:10px; font-weight:700; padding:1px 6px; border-radius:5px; background:var(--card-alt); color:var(--muted); border:1px solid var(--border); }
@@ -124,6 +151,47 @@
   </div>
 
   <div class="card">
+    <div class="flex-between"><h2 style="margin:0;">Warehouse RFQ Process</h2><span class="note">Click any step to jump in</span></div>
+    <div class="sub">3PL &middot; Distribution &middot; E-Commerce &middot; Special Projects &middot; One-Off Transload — the same 5 steps price any of them.</div>
+    <div class="rfq-steps-arc">
+      <div class="rfq-step" id="rfqStep-scope" onclick="goToRfqStep('scope')">
+        <div class="rfq-step-badge badge-purple"><span>🎯</span><span class="rfq-step-check">✓</span></div>
+        <div class="rfq-step-num">Step 1</div>
+        <div class="rfq-step-title">Capture Scope</div>
+        <div class="rfq-step-desc">Customer, building specs &amp; operating volumes — the foundation for any 3PL, distribution, ecom, special-projects, or transload RFQ.</div>
+      </div>
+      <div class="rfq-step-arrow">→</div>
+      <div class="rfq-step" id="rfqStep-operations" onclick="goToRfqStep('operations')">
+        <div class="rfq-step-badge badge-green"><span>⚙️</span><span class="rfq-step-check">✓</span></div>
+        <div class="rfq-step-num">Step 2</div>
+        <div class="rfq-step-title">Define Operations</div>
+        <div class="rfq-step-desc">Operation type, seasonality &amp; process steps — storage-only, pick-pack-ship, cross-dock, kitting, or a one-off special project.</div>
+      </div>
+      <div class="rfq-step-arrow">→</div>
+      <div class="rfq-step" id="rfqStep-assumptions" onclick="goToRfqStep('assumptions')">
+        <div class="rfq-step-badge badge-amber"><span>📍</span><span class="rfq-step-check">✓</span></div>
+        <div class="rfq-step-num">Step 3</div>
+        <div class="rfq-step-title">Collect Assumptions</div>
+        <div class="rfq-step-desc">Regional rent, utility &amp; labor benchmarks — plus your own vendor actuals — for the market this deal is in.</div>
+      </div>
+      <div class="rfq-step-arrow">→</div>
+      <div class="rfq-step" id="rfqStep-costmodel" onclick="goToRfqStep('costmodel')">
+        <div class="rfq-step-badge badge-red"><span>💰</span><span class="rfq-step-check">✓</span></div>
+        <div class="rfq-step-num">Step 4</div>
+        <div class="rfq-step-title">Build Cost Model</div>
+        <div class="rfq-step-desc">Facility, labor &amp; overhead build-up with a live margin slider and an industry benchmark check.</div>
+      </div>
+      <div class="rfq-step-arrow">→</div>
+      <div class="rfq-step" id="rfqStep-quote" onclick="goToRfqStep('quote')">
+        <div class="rfq-step-badge badge-accent"><span>📄</span><span class="rfq-step-check">✓</span></div>
+        <div class="rfq-step-num">Step 5</div>
+        <div class="rfq-step-title">Create Quote</div>
+        <div class="rfq-step-desc">Save the priced quote to Pricing History and export a customer-ready Excel workbook.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
     <div class="flex-between"><h2 style="margin:0;">Recent Activity</h2><span class="note">Last 8 saved quotes</span></div>
     <table>
       <thead><tr><th>Date</th><th>Customer</th><th>Warehouse</th><th>Region</th><th>$/Pallet</th><th>Margin %</th><th>Status</th><th></th></tr></thead>
@@ -147,7 +215,7 @@
 <!-- ============ TAB 1: RFQ INTAKE ============ -->
 <section class="panel" id="panel-rfq">
 
-  <div class="card">
+  <div class="card" id="rfqSectionScope">
     <h2>Customer &amp; Deal Info</h2>
     <div class="grid">
       <div class="field"><label>Customer Name</label><input type="text" id="customerName" placeholder="Acme Retail Inc."></div>
@@ -201,7 +269,7 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="rfqSectionOperations">
     <h2>Monthly Operating Volume</h2>
     <div class="sub">Used with industry-standard process times (Regional Benchmarks tab) to estimate labor hours required.</div>
     <div class="grid3">
@@ -513,6 +581,48 @@ function renderDashboard(){
       <td><button class="btn secondary" style="padding:3px 8px;font-size:11px;" onclick="loadQuote('${h.id}')">Load</button></td>
     </tr>`).join('') || '<tr><td colspan="8" class="note">No saved quotes yet — build one on the RFQ Intake tab.</td></tr>';
 }
+
+/* ============================================================
+   WAREHOUSE RFQ PROCESS TRACKER (Dashboard)
+   Each step is clickable regardless of completion state — completion
+   is just a visual signal, not a gate. Steps 2-4 will often light up
+   together right after Step 1 since their fields carry sensible
+   defaults; Step 5 only lights up once this exact customer/warehouse
+   has an actual saved quote in Pricing History.
+   ============================================================ */
+const RFQ_STEP_TARGETS = {
+  scope:       { tab:'rfq',        scrollTo:'rfqSectionScope' },
+  operations:  { tab:'rfq',        scrollTo:'rfqSectionOperations' },
+  assumptions: { tab:'benchmarks', scrollTo:null },
+  costmodel:   { tab:'cost',       scrollTo:null },
+  quote:       { tab:'history',    scrollTo:null }
+};
+function goToRfqStep(stepId){
+  const t = RFQ_STEP_TARGETS[stepId];
+  if(!t) return;
+  goTab(t.tab);
+  if(t.scrollTo){
+    setTimeout(()=>{
+      const el = document.getElementById(t.scrollTo);
+      if(el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+    }, 60);
+  }
+}
+function computeRfqProgress(inp, out){
+  const scope = !!(inp.customerName && inp.warehouseName);
+  const operations = scope && inp.palletsIn > 0 && inp.palletsOut > 0 && inp.ordersMonth > 0;
+  const assumptions = operations && inp.rentPerSqftYr > 0 && inp.laborRatePerHr > 0;
+  const costmodel = assumptions && out.totalCostMonth > 0;
+  const quote = costmodel && history.some(h => h.inputs.customerName === inp.customerName && h.inputs.warehouseName === inp.warehouseName);
+  return { scope, operations, assumptions, costmodel, quote };
+}
+function renderRfqProgress(inp, out){
+  const progress = computeRfqProgress(inp, out);
+  Object.keys(progress).forEach(stepId=>{
+    const el = document.getElementById('rfqStep-' + stepId);
+    if(el) el.classList.toggle('complete', !!progress[stepId]);
+  });
+}
 document.getElementById('tabNav').addEventListener('click', e=>{
   const b = e.target.closest('button[data-tab]'); if(!b) return; goTab(b.dataset.tab);
 });
@@ -822,6 +932,7 @@ function calc(){
 
   drawChart(out);
   updateSowSteps(inp);
+  renderRfqProgress(inp, out);
   return { inp, out };
 }
 
