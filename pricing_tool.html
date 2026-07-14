@@ -5,77 +5,107 @@
 <title>Unisco Pricing &amp; RFQ Tool</title>
 <style>
   :root {
-    color-scheme: light;
-    --navy:#1F4E78; --navy-dk:#153651; --accent:#2E86AB; --green:#1e8e5a; --amber:#b8860b; --red:#c0392b;
-    --bg:#f5f7fa; --card:#ffffff; --border:#dde3ea; --text:#1c2733; --muted:#5c6b7a;
+    color-scheme: dark;
+    /* WISE 3.0 palette (sampled from unis.item.com/summaryDashboard) */
+    --navy:#AA83DB; --navy-dk:#45246E; --accent:#8B5FD9; --accent-hover:#9B76E0;
+    --green:#22C55E; --green-bg:#14532D; --amber:#FACC15; --amber-bg:#713F12; --red:#F87171; --red-bg:#7F1D1D;
+    --bg:#1B1C23; --card:#21232B; --card-alt:#262933; --border:#333847; --text:#FFFFFF; --muted:rgba(255,255,255,0.62); --muted-faint:rgba(255,255,255,0.42);
   }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--text); font-family: "Segoe UI", Arial, sans-serif; font-size:14px; }
-  header { background:linear-gradient(90deg,var(--navy),var(--navy-dk)); color:#fff; padding:16px 22px; }
+  header { background:var(--bg); border-bottom:1px solid var(--border); color:#fff; padding:16px 22px; display:flex; align-items:center; gap:12px; }
+  header .logo-chip { width:34px; height:34px; border-radius:9px; background:linear-gradient(135deg,var(--navy),var(--navy-dk)); display:flex; align-items:center; justify-content:center; font-size:16px; flex:none; }
   header h1 { margin:0; font-size:19px; }
-  header p { margin:4px 0 0; font-size:12.5px; color:#cfe0ec; }
-  nav.tabs { display:flex; flex-wrap:wrap; background:#fff; border-bottom:2px solid var(--border); position:sticky; top:0; z-index:5; }
+  header p { margin:4px 0 0; font-size:12.5px; color:var(--muted); }
+  nav.tabs { display:flex; flex-wrap:wrap; background:var(--bg); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:5; }
   nav.tabs button { flex:1 1 auto; padding:11px 10px; border:none; background:transparent; cursor:pointer; font-size:13px; font-weight:600; color:var(--muted); border-bottom:3px solid transparent; white-space:nowrap; }
-  nav.tabs button.active { color:var(--navy); border-bottom:3px solid var(--accent); background:#eef5fa; }
+  nav.tabs button.active { color:var(--navy); border-bottom:3px solid var(--accent); background:var(--card); }
+  nav.tabs button:hover { color:#fff; }
   main { padding:18px 22px 60px; max-width:1300px; margin:0 auto; }
   .panel { display:none; }
   .panel.active { display:block; }
-  .card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px 18px; margin-bottom:16px; }
-  .card h2 { margin:0 0 4px; font-size:15px; color:var(--navy); }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 18px; margin-bottom:16px; }
+  .card h2 { margin:0 0 4px; font-size:15px; color:#fff; }
   .card .sub { color:var(--muted); font-size:12px; margin-bottom:12px; }
   .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; }
   .grid3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; }
   label { display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:3px; }
   input[type=text], input[type=number], input[type=date], select, textarea {
-    width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:5px; font-size:13px; background:#fff; color:var(--text);
+    width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:8px; font-size:13px; background:var(--card-alt); color:var(--text);
   }
+  input::placeholder, textarea::placeholder { color:var(--muted-faint); }
+  input[type=text]:focus, input[type=number]:focus, input[type=date]:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); }
   textarea { resize:vertical; min-height:60px; }
   .field { margin-bottom:10px; }
   .row { display:flex; gap:10px; flex-wrap:wrap; }
-  button.btn { background:var(--accent); color:#fff; border:none; padding:9px 16px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; }
-  button.btn.secondary { background:#eef1f4; color:var(--navy); }
-  button.btn.danger { background:#fbe9e7; color:var(--red); }
-  button.btn:hover { opacity:0.9; }
+  button.btn { background:var(--navy-dk); color:#fff; border:none; padding:9px 16px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
+  button.btn.secondary { background:var(--card-alt); color:var(--navy); border:1px solid var(--border); }
+  button.btn.danger { background:rgba(248,113,113,0.14); color:var(--red); }
+  button.btn:hover { background:var(--accent-hover); }
+  button.btn.secondary:hover { border-color:var(--accent); color:#fff; background:var(--card-alt); }
+  button.btn.danger:hover { background:rgba(248,113,113,0.24); }
   table { width:100%; border-collapse:collapse; font-size:12.5px; }
   table th, table td { border:1px solid var(--border); padding:6px 8px; text-align:left; }
-  table th { background:#f0f4f8; color:var(--navy); font-size:11.5px; text-transform:uppercase; letter-spacing:.03em; }
-  table input { border:1px solid transparent; background:transparent; padding:2px 4px; }
-  table input:focus { border:1px solid var(--accent); background:#fff; }
+  table th { background:var(--card-alt); color:var(--navy); font-size:11.5px; text-transform:uppercase; letter-spacing:.03em; }
+  table input { border:1px solid transparent; background:transparent; padding:2px 4px; color:var(--text); }
+  table input:focus { border:1px solid var(--accent); background:var(--card-alt); }
   .pill { display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:700; }
-  .pill.green { background:#e3f6ea; color:var(--green); }
-  .pill.amber { background:#fdf1dc; color:var(--amber); }
-  .pill.red { background:#fbe4e1; color:var(--red); }
+  .pill.green { background:var(--green-bg); color:var(--green); }
+  .pill.amber { background:var(--amber-bg); color:var(--amber); }
+  .pill.red { background:var(--red-bg); color:var(--red); }
   .out-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-top:8px; }
-  .out-card { background:#eef5fa; border:1px solid #d7e8f2; border-radius:8px; padding:12px 14px; text-align:center; }
+  .out-card { background:rgba(170,131,219,0.10); border:1px solid rgba(170,131,219,0.30); border-radius:14px; padding:12px 14px; text-align:center; }
   .out-card .val { font-size:22px; font-weight:700; color:var(--navy); }
   .out-card .lbl { font-size:11.5px; color:var(--muted); margin-top:3px; }
   .slider-wrap { display:flex; align-items:center; gap:14px; margin:10px 0; }
   input[type=range] { flex:1; accent-color:var(--accent); height:6px; }
-  .slider-val { font-size:22px; font-weight:700; color:var(--accent); min-width:70px; text-align:right; }
+  .slider-val { font-size:22px; font-weight:700; color:var(--navy); min-width:70px; text-align:right; }
   .note { font-size:11.5px; color:var(--muted); }
-  .source { font-size:10.5px; color:#8a97a5; font-style:italic; }
+  .source { font-size:10.5px; color:var(--muted-faint); font-style:italic; }
   .flex-between { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
   .divider { border:none; border-top:1px solid var(--border); margin:14px 0; }
-  .badge-region { font-size:11px; background:#eef1f4; padding:3px 8px; border-radius:4px; color:var(--navy); font-weight:600; }
+  .badge-region { font-size:11px; background:var(--card-alt); padding:3px 8px; border-radius:6px; color:var(--navy); font-weight:600; border:1px solid var(--border); }
   #chartWrap { max-width:320px; margin:0 auto; }
   .history-actions button { margin-right:4px; font-size:11px; padding:4px 8px; }
-  .upload-box { border:2px dashed var(--border); border-radius:8px; padding:16px; text-align:center; background:#fafcfd; }
+  .upload-box { border:2px dashed var(--border); border-radius:14px; padding:16px; text-align:center; background:var(--card-alt); }
   .upload-box input[type=file] { margin-top:8px; }
-  .preview-box { max-height:180px; overflow:auto; background:#f7f9fb; border:1px solid var(--border); border-radius:6px; padding:8px; font-family:monospace; font-size:11px; white-space:pre-wrap; margin-top:8px; }
+  .preview-box { max-height:180px; overflow:auto; background:var(--card-alt); border:1px solid var(--border); border-radius:8px; padding:8px; font-family:monospace; font-size:11px; white-space:pre-wrap; margin-top:8px; color:var(--text); }
   .checklist label { display:flex; align-items:center; gap:6px; font-weight:500; color:var(--text); margin-bottom:6px; }
   .checklist input { width:auto; }
-  footer { text-align:center; color:var(--muted); font-size:11px; padding:20px; }
+  footer { text-align:center; color:var(--muted-faint); font-size:11px; padding:20px; }
+  /* Dashboard tiles */
+  .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; }
+  .stat-tile { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px 18px; }
+  .stat-tile .stat-icon { width:40px; height:40px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:18px; margin-bottom:10px; }
+  .stat-tile .stat-icon.i-green { background:var(--green-bg); }
+  .stat-tile .stat-icon.i-amber { background:var(--amber-bg); }
+  .stat-tile .stat-icon.i-red { background:var(--red-bg); }
+  .stat-tile .stat-icon.i-purple { background:var(--navy-dk); }
+  .stat-tile .stat-val { font-size:26px; font-weight:700; color:#fff; }
+  .stat-tile .stat-lbl { font-size:12px; color:var(--muted); margin-top:2px; }
+  .quicknav { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+  .quicknav a.qn-tile { display:block; text-decoration:none; background:var(--card-alt); border:1px solid var(--border); border-radius:14px; padding:14px; text-align:center; color:#fff; font-size:12.5px; font-weight:600; cursor:pointer; }
+  .quicknav a.qn-tile:hover { border-color:var(--accent); color:var(--navy); }
+  .quicknav .qn-icon { font-size:20px; margin-bottom:6px; display:block; }
+  /* SOW step builder */
+  .sow-auto-tag { font-size:10px; font-weight:700; padding:1px 6px; border-radius:5px; background:rgba(170,131,219,0.16); color:var(--navy); }
+  .sow-manual-tag { font-size:10px; font-weight:700; padding:1px 6px; border-radius:5px; background:var(--card-alt); color:var(--muted); border:1px solid var(--border); }
+  .sow-totals-row td { font-weight:700; background:var(--card-alt); color:#fff; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Unisco Pricing &amp; RFQ Tool</h1>
-  <p>Build a customer quote from building specs and operating volumes, benchmark it against regional &amp; industry data, tune margin, and export a defensible Excel workbook.</p>
+  <div class="logo-chip">⬡</div>
+  <div>
+    <h1>Unisco Pricing &amp; RFQ Tool</h1>
+    <p>Build a customer quote from building specs and operating volumes, benchmark it against regional &amp; industry data, tune margin, and export a defensible Excel workbook.</p>
+  </div>
 </header>
 
 <nav class="tabs" id="tabNav">
-  <button data-tab="rfq" class="active">1. RFQ Intake</button>
+  <button data-tab="dashboard" class="active">Dashboard</button>
+  <button data-tab="rfq">1. RFQ Intake</button>
   <button data-tab="benchmarks">2. Regional Benchmarks</button>
   <button data-tab="cost">3. Cost &amp; Margin</button>
   <button data-tab="history">4. Pricing History</button>
@@ -85,8 +115,37 @@
 
 <main>
 
+<!-- ============ TAB 0: DASHBOARD ============ -->
+<section class="panel active" id="panel-dashboard">
+  <div class="card">
+    <h2>Overview</h2>
+    <div class="sub">Snapshot of your pricing activity. Updates automatically as you save quotes.</div>
+    <div class="stat-grid" id="dashboardStats"></div>
+  </div>
+
+  <div class="card">
+    <div class="flex-between"><h2 style="margin:0;">Recent Activity</h2><span class="note">Last 8 saved quotes</span></div>
+    <table>
+      <thead><tr><th>Date</th><th>Customer</th><th>Warehouse</th><th>Region</th><th>$/Pallet</th><th>Margin %</th><th>Status</th><th></th></tr></thead>
+      <tbody id="dashboardRecentBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Quick Links</h2>
+    <div class="quicknav">
+      <a class="qn-tile" onclick="goTab('rfq')"><span class="qn-icon">📝</span>New RFQ</a>
+      <a class="qn-tile" onclick="goTab('benchmarks')"><span class="qn-icon">📍</span>Regional Benchmarks</a>
+      <a class="qn-tile" onclick="goTab('cost')"><span class="qn-icon">💰</span>Cost &amp; Margin</a>
+      <a class="qn-tile" onclick="goTab('history')"><span class="qn-icon">🗂️</span>Pricing History</a>
+      <a class="qn-tile" onclick="goTab('addendum')"><span class="qn-icon">📄</span>SOW Addendum</a>
+      <a class="qn-tile" onclick="goTab('export')"><span class="qn-icon">📊</span>Export</a>
+    </div>
+  </div>
+</section>
+
 <!-- ============ TAB 1: RFQ INTAKE ============ -->
-<section class="panel active" id="panel-rfq">
+<section class="panel" id="panel-rfq">
 
   <div class="card">
     <h2>Customer &amp; Deal Info</h2>
@@ -153,6 +212,17 @@
       <div class="field"><label>Avg Units / Order</label><input type="number" id="unitsPerOrder" value="5"></div>
       <div class="field"><label>Returns / Month</label><input type="number" id="returnsMonth" value="120"></div>
     </div>
+  </div>
+
+  <div class="card">
+    <div class="flex-between"><h2 style="margin:0;">Scope of Work — Process Steps &amp; Guesstimates</h2><span class="note">Auto-filled from volumes above</span></div>
+    <div class="sub">Build the SOW as a sequence of process steps. The standard steps below auto-calculate a time &amp; cost guesstimate from your volumes and the Process Time Standards / labor rate (Regional Benchmarks tab) — edit any Hours or Cost cell to lock in your own number instead, or add custom steps for anything not covered.</div>
+    <table>
+      <thead><tr><th>Step</th><th>Est. Hours / Month</th><th>Est. Cost / Month</th><th>Notes</th><th></th></tr></thead>
+      <tbody id="sowStepsBody"></tbody>
+      <tfoot><tr class="sow-totals-row"><td>Total</td><td id="sowTotalHours"></td><td id="sowTotalCost"></td><td colspan="2"></td></tr></tfoot>
+    </table>
+    <button class="btn secondary" style="margin-top:8px;" onclick="addSowStep()">+ Add Step</button>
   </div>
 
   <div class="card">
@@ -377,6 +447,16 @@ const REGION_SOURCE = "Statista/ReadySpaces industrial rent 2025-26; U.S. EIA co
 
 let vendorRows = load('unisco_vendor_actuals_v1', []);
 let history = load('unisco_pricing_history_v1', []);
+function defaultSowSteps(){
+  return [
+    { id:'receiving', name:'Receiving', auto:true, autoSource:'receiving', hours:0, cost:0, notes:'' },
+    { id:'putaway',   name:'Putaway',   auto:true, autoSource:'putaway',   hours:0, cost:0, notes:'' },
+    { id:'picking',   name:'Picking',   auto:true, autoSource:'picking',   hours:0, cost:0, notes:'' },
+    { id:'packing',   name:'Packing',   auto:true, autoSource:'packing',   hours:0, cost:0, notes:'' },
+    { id:'loading',   name:'Loading',   auto:true, autoSource:'loading',   hours:0, cost:0, notes:'' }
+  ];
+}
+let sowSteps = load('unisco_sow_steps_v1', null) || defaultSowSteps();
 
 /* ============================================================
    UTILS
@@ -396,6 +476,42 @@ function goTab(name){
   document.querySelectorAll('main .panel').forEach(p=>p.classList.toggle('active', p.id==='panel-'+name));
   if(name==='history') renderHistory();
   if(name==='addendum') populateAddendumDropdown();
+  if(name==='dashboard') renderDashboard();
+}
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+function renderDashboard(){
+  const tilesEl = document.getElementById('dashboardStats');
+  if(!tilesEl) return;
+  const ym = new Date().toISOString().slice(0,7);
+  const thisMonth = history.filter(h=>(h.inputs.quoteDate||h.savedAt||'').slice(0,7)===ym).length;
+  const avgMargin = history.length ? (history.reduce((s,h)=>s+(h.inputs.marginPct||0),0)/history.length) : 0;
+  const openPipeline = history.filter(h=>h.status==='Draft'||h.status==='Quoted').reduce((s,h)=>s+(h.outputs.priceMonth||0),0);
+  const belowTarget = history.filter(h=>(h.inputs.marginPct||0) < (h.inputs.targetMarginMin||0)).length;
+
+  tilesEl.innerHTML = `
+    <div class="stat-tile"><div class="stat-icon i-purple">📝</div><div class="stat-val">${thisMonth}</div><div class="stat-lbl">Quotes This Month</div></div>
+    <div class="stat-tile"><div class="stat-icon i-green">📈</div><div class="stat-val">${avgMargin.toFixed(1)}%</div><div class="stat-lbl">Avg Margin — All Saved Quotes</div></div>
+    <div class="stat-tile"><div class="stat-icon i-amber">💰</div><div class="stat-val">${fmt$(openPipeline)}</div><div class="stat-lbl">Open Pipeline ($/mo, Draft + Quoted)</div></div>
+    <div class="stat-tile"><div class="stat-icon i-red">⚠️</div><div class="stat-val">${belowTarget}</div><div class="stat-lbl">Below Target Margin</div></div>
+  `;
+
+  const body = document.getElementById('dashboardRecentBody');
+  const recent = history.slice(0,8);
+  const statusPill = s => { const cls = s==='Won'?'green':s==='Lost'?'red':'amber'; return `<span class="pill ${cls}">${esc(s)}</span>`; };
+  body.innerHTML = recent.map(h=>`
+    <tr>
+      <td>${esc(h.inputs.quoteDate||h.savedAt.slice(0,10))}</td>
+      <td>${esc(h.inputs.customerName)}</td>
+      <td>${esc(h.inputs.warehouseName)}</td>
+      <td>${esc(REGIONS[h.inputs.regionKey]?.label||h.inputs.regionKey)}</td>
+      <td>${fmt$(h.outputs.pricePerPallet)}</td>
+      <td>${h.inputs.marginPct}%</td>
+      <td>${statusPill(h.status)}</td>
+      <td><button class="btn secondary" style="padding:3px 8px;font-size:11px;" onclick="loadQuote('${h.id}')">Load</button></td>
+    </tr>`).join('') || '<tr><td colspan="8" class="note">No saved quotes yet — build one on the RFQ Intake tab.</td></tr>';
 }
 document.getElementById('tabNav').addEventListener('click', e=>{
   const b = e.target.closest('button[data-tab]'); if(!b) return; goTab(b.dataset.tab);
@@ -456,6 +572,74 @@ function renderVendorTable(){
 }
 function addVendorRow(){ vendorRows.push({name:'',region:'',rent:0,utility:0,labor:0,notes:''}); save('unisco_vendor_actuals_v1',vendorRows); renderVendorTable(); }
 function removeVendorRow(i){ vendorRows.splice(i,1); save('unisco_vendor_actuals_v1',vendorRows); renderVendorTable(); }
+
+/* ============================================================
+   SCOPE OF WORK — PROCESS STEP GUESSTIMATE BUILDER
+   Standard steps auto-calculate from volumes + Process Time Standards + labor rate.
+   Editing a step's Hours/Cost locks it to manual; "reset to auto" un-locks it.
+   ============================================================ */
+function computeAutoStepHours(source, inp){
+  switch(source){
+    case 'receiving': return inp.palletsIn * inp.receivingMin / 60;
+    case 'putaway':   return inp.palletsIn * inp.putawayMin / 60;
+    case 'picking':   return inp.ordersMonth * inp.linesPerOrder * inp.pickMin / 60;
+    case 'packing':   return inp.ordersMonth * (inp.packMinBase + inp.unitsPerOrder * inp.packMinUnit) / 60;
+    case 'loading':   return inp.palletsOut * inp.loadingMin / 60;
+    default: return 0;
+  }
+}
+function saveSowSteps(){ save('unisco_sow_steps_v1', sowSteps); }
+function updateSowSteps(inp){
+  sowSteps.forEach(s=>{
+    if(s.auto && s.autoSource){
+      s.hours = computeAutoStepHours(s.autoSource, inp);
+      s.cost = s.hours * inp.laborRatePerHr * (1 + inp.laborBurdenPct/100);
+    }
+  });
+  renderSowSteps();
+  saveSowSteps();
+}
+function renderSowSteps(){
+  const tbody = document.getElementById('sowStepsBody');
+  if(!tbody) return;
+  tbody.innerHTML = sowSteps.map((s,i)=>`
+    <tr>
+      <td><input type="text" value="${esc(s.name)}" onchange="sowSteps[${i}].name=this.value; saveSowSteps();"></td>
+      <td style="white-space:nowrap;">
+        <input type="number" step="0.1" style="display:inline-block; width:80px;" value="${(parseFloat(s.hours)||0).toFixed(1)}" onchange="editSowStepField(${i},'hours',this.value)">
+        ${s.auto ? '<span class="sow-auto-tag">AUTO</span>' : `<span class="sow-manual-tag">MANUAL</span> <button class="btn secondary" style="padding:1px 6px;font-size:10px;margin-left:4px;" onclick="resetSowStepAuto(${i})">↺ auto</button>`}
+      </td>
+      <td><input type="number" step="1" value="${(parseFloat(s.cost)||0).toFixed(0)}" onchange="editSowStepField(${i},'cost',this.value)"></td>
+      <td><input type="text" value="${esc(s.notes||'')}" placeholder="optional" onchange="sowSteps[${i}].notes=this.value; saveSowSteps();"></td>
+      <td><button class="btn danger" style="padding:3px 8px;font-size:11px;" onclick="removeSowStep(${i})">✕</button></td>
+    </tr>`).join('');
+  const totalHours = sowSteps.reduce((sum,x)=>sum+(parseFloat(x.hours)||0),0);
+  const totalCost = sowSteps.reduce((sum,x)=>sum+(parseFloat(x.cost)||0),0);
+  const totalHoursEl = document.getElementById('sowTotalHours');
+  const totalCostEl = document.getElementById('sowTotalCost');
+  if(totalHoursEl) totalHoursEl.textContent = fmtNum(totalHours) + ' hrs';
+  if(totalCostEl) totalCostEl.textContent = fmt$(totalCost);
+}
+function editSowStepField(i, field, value){
+  sowSteps[i][field] = parseFloat(value) || 0;
+  sowSteps[i].auto = false; // manual edit locks this step out of auto-recalc
+  saveSowSteps();
+  renderSowSteps();
+}
+function resetSowStepAuto(i){
+  sowSteps[i].auto = true;
+  updateSowSteps(getInputs());
+}
+function addSowStep(){
+  sowSteps.push({ id:'custom_'+Date.now(), name:'New Step', auto:false, autoSource:null, hours:0, cost:0, notes:'' });
+  saveSowSteps();
+  renderSowSteps();
+}
+function removeSowStep(i){
+  sowSteps.splice(i,1);
+  saveSowSteps();
+  renderSowSteps();
+}
 
 /* ============================================================
    FILE UPLOAD HANDLERS
@@ -605,9 +789,9 @@ function calc(){
     ['Equipment / WMS / Overhead', out.equipmentOverhead],
   ];
   let html = rows.map(r=>`<tr><td>${r[0]}</td><td style="text-align:right;">${fmt$(r[1])}</td></tr>`).join('');
-  html += `<tr style="font-weight:700; background:#f0f4f8;"><td>Total Cost / Month</td><td style="text-align:right;">${fmt$(out.totalCostMonth)}</td></tr>`;
+  html += `<tr style="font-weight:700; background:var(--card-alt);"><td>Total Cost / Month</td><td style="text-align:right;">${fmt$(out.totalCostMonth)}</td></tr>`;
   html += `<tr><td>Margin ($ at ${inp.marginPct}%)</td><td style="text-align:right;">${fmt$(out.marginDollarMonth)}</td></tr>`;
-  html += `<tr style="font-weight:700; background:#eef5fa; color:var(--navy);"><td>Total Price / Month</td><td style="text-align:right;">${fmt$(out.priceMonth)}</td></tr>`;
+  html += `<tr style="font-weight:700; background:rgba(170,131,219,0.12); color:var(--navy);"><td>Total Price / Month</td><td style="text-align:right;">${fmt$(out.priceMonth)}</td></tr>`;
   document.getElementById('costBreakdownBody').innerHTML = html;
 
   // output cards
@@ -637,6 +821,7 @@ function calc(){
     `<div class="note">Ranges reflect published 2025-26 3PL market data for comparable storage/receiving/pick services. This is a directional check, not an exact like-for-like match to your specific service mix.</div>`;
 
   drawChart(out);
+  updateSowSteps(inp);
   return { inp, out };
 }
 
@@ -678,10 +863,10 @@ function drawChart(out){
   const data = {
     labels: ['Facility', 'Labor', 'Equipment/Overhead', 'Margin'],
     datasets: [{ data: [out.facilityCostMonth, out.laborCostMonth, out.equipmentOverhead, out.marginDollarMonth],
-      backgroundColor: ['#2E86AB','#1F4E78','#8aa9bd','#1e8e5a'] }]
+      backgroundColor: ['#AA83DB','#45246E','#FACC15','#22C55E'], borderColor:'#21232B', borderWidth:2 }]
   };
   if(costChart){ costChart.data = data; costChart.update(); return; }
-  costChart = new Chart(ctx, { type:'doughnut', data, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:11, font:{size:11} } } } } });
+  costChart = new Chart(ctx, { type:'doughnut', data, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:11, font:{size:11}, color:'rgba(255,255,255,0.75)' } } } } });
 }
 
 // wire up live recalculation
@@ -952,6 +1137,19 @@ function buildBenchmarkSheet(inp){
   return s;
 }
 
+function buildSowStepsSheet(){
+  let s = sheetOpen('Scope of Work');
+  s += rowStr([cS('Step','Header'), cS('Basis','Header'), cS('Est. Hours / Month','Header'), cS('Est. Cost / Month','Header'), cS('Notes','Header')]);
+  sowSteps.forEach(step=>{
+    s += rowStr([cS(step.name), cS(step.auto?'Auto (volumes + process standards)':'Manual guesstimate'), cN(step.hours), cN(step.cost,'Currency'), cS(step.notes||'')]);
+  });
+  const totalHours = sowSteps.reduce((sum,x)=>sum+(parseFloat(x.hours)||0),0);
+  const totalCost = sowSteps.reduce((sum,x)=>sum+(parseFloat(x.cost)||0),0);
+  s += rowStr([cS('Total','Bold'), cS('','Bold'), cN(totalHours,'Bold'), cN(totalCost,'Currency'), cS('')]);
+  s += sheetClose();
+  return s;
+}
+
 function buildBenchmarkCheckSheet(inp, out){
   let s = sheetOpen('Industry Check');
   s += rowStr([cS('Metric','Header'), cS('Your Price','Header'), cS('Industry Low','Header'), cS('Industry High','Header'), cS('Status','Header')]);
@@ -1003,6 +1201,7 @@ function exportCurrentQuote(){
   xml += buildQuoteSummarySheet(inp, out);
   xml += buildCostBreakdownSheet(inp, out);
   xml += buildBenchmarkSheet(inp);
+  xml += buildSowStepsSheet();
   xml += buildBenchmarkCheckSheet(inp, out);
   if(window._lastAddendum) xml += buildAddendumSheet();
   xml += `</Workbook>`;
@@ -1030,6 +1229,7 @@ function init(){
   applyRegionDefaults();
   renderHistory();
   populateAddendumDropdown();
+  renderDashboard();
   calc();
 }
 window.addEventListener('load', ()=>{
