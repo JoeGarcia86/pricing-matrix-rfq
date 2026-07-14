@@ -299,6 +299,41 @@
   </div>
 
   <div class="card">
+    <div class="flex-between"><h2 style="margin:0;">Space &amp; Dock Requirements Calculator</h2><span class="note">Answer these to size the deal instead of guessing</span></div>
+    <div class="sub">Turns throughput into an actual space and dock door requirement, and tells you what to bill for storage to protect your margin target. Defaults are common warehousing rules of thumb — adjust to match this customer's real pallet profile and truck mix, then apply the results into Building Specs above.</div>
+    <div class="grid3">
+      <div class="field"><label>Storage Type</label>
+        <select id="storageType" onchange="applyStorageTypeDefault()">
+          <option>Bulk 1 High</option>
+          <option>Bulk 2 High</option>
+          <option>Bulk 3-4 High</option>
+          <option>Bulk 5+ High</option>
+          <option>Racking Under 60"</option>
+          <option>Racking Over 60"</option>
+        </select>
+      </div>
+      <div class="field"><label>Avg Dwell Time per Pallet (days in storage)</label><input type="number" id="dwellTimeDays" value="30"></div>
+      <div class="field"><label>Peak Season Buffer %</label><input type="number" id="peakMultiplierPct" value="25"></div>
+      <div class="field"><label>Sq Ft per Pallet Position <span class="note">(auto-set by Storage Type, editable)</span></label><input type="number" id="sqftPerPallet" value="13"></div>
+      <div class="field"><label>Extra Space Overhead % (aisles, staging, office)</label><input type="number" id="spaceOverheadPct" value="20"></div>
+      <div class="field"><label>Pallets per Truck</label><input type="number" id="palletsPerTruck" value="26"></div>
+      <div class="field"><label>Operating Days / Month</label><input type="number" id="operatingDaysMonth" value="22"></div>
+      <div class="field"><label>Dock Throughput (trucks / door / day)</label><input type="number" id="dockCapacityPerDoor" value="10"></div>
+    </div>
+    <div class="out-cards" id="spaceDockResults" style="margin-top:10px;"></div>
+    <div class="row" style="margin-top:10px; gap:8px;">
+      <button class="btn secondary" onclick="applySpaceDockRecommendation('sqft')">Apply Recommended Sq Ft →</button>
+      <button class="btn secondary" onclick="applySpaceDockRecommendation('docks')">Apply Recommended Dock Doors →</button>
+    </div>
+    <div class="note" id="spaceDockNote" style="margin-top:8px;"></div>
+    <hr class="divider">
+    <div class="flex-between"><h2 style="margin:0; font-size:14px;">🤖 AI Discovery Questions</h2><span class="note">Optional — uses current inputs, nothing is stored</span></div>
+    <div class="sub">Get a short list of sharp questions to ask this customer before you lock in space, dock counts, and storage pricing — including a flag on which inputs above still look like unconfirmed defaults.</div>
+    <button class="btn" id="discoveryBtn" onclick="getDiscoveryQuestions()">🤖 Get Discovery Questions</button>
+    <div id="discoveryOutput" class="preview-box" style="display:none; margin-top:10px; white-space:pre-wrap;"></div>
+  </div>
+
+  <div class="card">
     <div class="flex-between"><h2 style="margin:0;">Scope of Work — Process Steps &amp; Guesstimates</h2><span class="note">Auto-filled from volumes above</span></div>
     <div class="sub">Build the SOW as a sequence of process steps. The standard steps below auto-calculate a time &amp; cost guesstimate from your volumes and the Process Time Standards / labor rate (Regional Benchmarks tab) — edit any Hours or Cost cell to lock in your own number instead, or add custom steps for anything not covered.</div>
     <table>
@@ -408,17 +443,18 @@
   <div class="card">
     <h2>Margin Slider</h2>
     <div class="grid3">
-      <div class="field"><label>Target Margin Min %</label><input type="number" id="targetMarginMin" value="15"></div>
-      <div class="field"><label>Target Margin Max %</label><input type="number" id="targetMarginMax" value="30"></div>
+      <div class="field"><label>Target Margin Min %</label><input type="number" id="targetMarginMin" value="30"></div>
+      <div class="field"><label>Target Margin Max %</label><input type="number" id="targetMarginMax" value="45"></div>
       <div class="field"><label>Pricing Basis for Slider Display</label>
         <select id="pricingBasis"><option value="pallet">Per Pallet</option><option value="order">Per Order</option><option value="sqft">Per Sq Ft / Month</option><option value="hour">Per Labor Hour</option></select>
       </div>
     </div>
+    <div class="sub" style="margin-top:-6px;">Defaults set to a 30–45% target range — adjust per deal, but treat anything below 30% as a flag to revisit scope or pricing before quoting.</div>
     <div class="slider-wrap">
       <span class="note">0%</span>
-      <input type="range" id="marginSlider" min="0" max="50" step="0.5" value="20">
+      <input type="range" id="marginSlider" min="0" max="50" step="0.5" value="32">
       <span class="note">50%</span>
-      <span class="slider-val" id="marginSliderVal">20%</span>
+      <span class="slider-val" id="marginSliderVal">32%</span>
     </div>
     <div id="marginGauge"></div>
 
@@ -1074,7 +1110,8 @@ function getInputs(){
     pricingBasis: document.getElementById('pricingBasis').value,
     benchPalletLow: val('benchPalletLow'), benchPalletHigh: val('benchPalletHigh'),
     benchRecvLow: val('benchRecvLow'), benchRecvHigh: val('benchRecvHigh'),
-    benchPickLow: val('benchPickLow'), benchPickHigh: val('benchPickHigh')
+    benchPickLow: val('benchPickLow'), benchPickHigh: val('benchPickHigh'),
+    storageType: document.getElementById('storageType').value
   };
 }
 
@@ -1111,6 +1148,84 @@ function computeQuote(inp){
     equipmentOverhead: inp.equipmentOverhead, totalCostMonth, priceMonth, marginDollarMonth,
     totalPalletMoves, pricePerPallet, pricePerOrder, pricePerSqft, pricePerHour, costPerPallet, costPerOrder,
     ftes: laborHoursMonth/173 };
+}
+
+/* ============================================================
+   SPACE & DOCK REQUIREMENTS CALCULATOR
+   ============================================================ */
+// Approx. effective sq ft consumed per pallet stored, once stacking height / rack levels are factored in.
+// Higher stacking or more rack levels = more pallets stored per sq ft of floor footprint.
+const STORAGE_TYPE_SQFT_PER_PALLET = {
+  'Bulk 1 High': 13,
+  'Bulk 2 High': 7,
+  'Bulk 3-4 High': 4.5,
+  'Bulk 5+ High': 2.5,
+  'Racking Under 60"': 10,
+  'Racking Over 60"': 5
+};
+function applyStorageTypeDefault(){
+  const type = document.getElementById('storageType').value;
+  const sqft = STORAGE_TYPE_SQFT_PER_PALLET[type];
+  if(sqft!=null){ document.getElementById('sqftPerPallet').value = sqft; }
+  calc();
+}
+
+function computeSpaceDock(inp){
+  const dwellTimeDays = val('dwellTimeDays');
+  const peakMultiplierPct = val('peakMultiplierPct');
+  const sqftPerPallet = val('sqftPerPallet');
+  const spaceOverheadPct = val('spaceOverheadPct');
+  const palletsPerTruck = val('palletsPerTruck') || 1;
+  const operatingDaysMonth = val('operatingDaysMonth') || 1;
+  const dockCapacityPerDoor = val('dockCapacityPerDoor') || 1;
+
+  // Little's Law: avg pallets on hand = daily inbound rate x dwell time
+  const dailyInboundRate = inp.palletsIn / 30;
+  const avgOnHand = dailyInboundRate * dwellTimeDays;
+  const peakOnHand = avgOnHand * (1 + peakMultiplierPct/100);
+  const recommendedSqft = Math.ceil(peakOnHand * sqftPerPallet * (1 + spaceOverheadPct/100));
+
+  const trucksPerDay = (inp.palletsIn + inp.palletsOut) / palletsPerTruck / operatingDaysMonth;
+  const recommendedDocks = Math.max(1, Math.ceil(trucksPerDay / dockCapacityPerDoor));
+
+  const storageCostPerPalletMonth = (inp.rentPerSqftYr + inp.utilityPerSqftYr) * sqftPerPallet / 12;
+  const marginFloor = inp.targetMarginMin < 100 ? inp.targetMarginMin : 0;
+  const recommendedRatePerPalletMonth = marginFloor < 100 ? storageCostPerPalletMonth / (1 - marginFloor/100) : storageCostPerPalletMonth;
+  const recommendedRatePerSqftMonth = sqftPerPallet>0 ? recommendedRatePerPalletMonth / sqftPerPallet : 0;
+  const recommendedMonthlyStorageBill = recommendedRatePerPalletMonth * peakOnHand;
+
+  return { dwellTimeDays, peakMultiplierPct, avgOnHand, peakOnHand, recommendedSqft, trucksPerDay,
+    recommendedDocks, storageCostPerPalletMonth, recommendedRatePerPalletMonth, recommendedRatePerSqftMonth,
+    recommendedMonthlyStorageBill };
+}
+
+let lastSpaceDock = null;
+function renderSpaceDock(inp){
+  const sd = computeSpaceDock(inp);
+  lastSpaceDock = sd;
+  const sqftFlag = Math.abs(sd.recommendedSqft - inp.allocatedSqft) > inp.allocatedSqft*0.15;
+  const dockFlag = sd.recommendedDocks !== inp.dockDoors;
+  document.getElementById('spaceDockResults').innerHTML = `
+    <div class="out-card"><div class="val">${fmtNum(sd.recommendedSqft)}</div><div class="lbl">Recommended Sq Ft ${sqftFlag?'⚠️':'✓'}</div></div>
+    <div class="out-card"><div class="val">${sd.recommendedDocks}</div><div class="lbl">Recommended Dock Doors ${dockFlag?'⚠️':'✓'}</div></div>
+    <div class="out-card"><div class="val">${fmt$(sd.storageCostPerPalletMonth)}</div><div class="lbl">Storage Cost / Pallet / Month</div></div>
+    <div class="out-card"><div class="val">${fmt$(sd.recommendedRatePerPalletMonth)}</div><div class="lbl">Rate to Bill / Pallet / Month (${inp.targetMarginMin}%+ margin)</div></div>
+    <div class="out-card"><div class="val">${fmt$(sd.recommendedRatePerSqftMonth)}</div><div class="lbl">Rate to Bill / Sq Ft / Month</div></div>
+    <div class="out-card"><div class="val">${fmt$(sd.recommendedMonthlyStorageBill)}</div><div class="lbl">Recommended Monthly Storage Revenue</div></div>
+  `;
+  const notes = [];
+  notes.push(`Estimated avg ${fmtNum(sd.avgOnHand)} pallets on hand, peaking at ${fmtNum(sd.peakOnHand)} with your ${sd.peakMultiplierPct}% buffer.`);
+  if(sqftFlag) notes.push(`Current allocation (${fmtNum(inp.allocatedSqft)} sq ft) is more than 15% off the recommendation — consider updating Building Specs above.`);
+  if(dockFlag) notes.push(`Current dock doors (${inp.dockDoors}) differ from the recommended ${sd.recommendedDocks} based on ${fmtNum(sd.trucksPerDay)} trucks/day.`);
+  document.getElementById('spaceDockNote').textContent = notes.join(' ');
+  return sd;
+}
+
+function applySpaceDockRecommendation(type){
+  if(!lastSpaceDock) return;
+  if(type==='sqft'){ document.getElementById('allocatedSqft').value = lastSpaceDock.recommendedSqft; }
+  if(type==='docks'){ document.getElementById('dockDoors').value = lastSpaceDock.recommendedDocks; }
+  calc();
 }
 
 function calc(){
@@ -1164,6 +1279,7 @@ function calc(){
   drawChart(out);
   updateSowSteps(inp);
   renderRfqProgress(inp, out);
+  renderSpaceDock(inp);
   if(lastProjectionRows.length) renderProjectionsResults(lastProjectionRows);
   return { inp, out };
 }
@@ -1199,6 +1315,42 @@ Keep the whole response under 120 words.`;
   btn.disabled = false; btn.textContent = '🤖 Get AI Suggestion';
 }
 
+/* ============================================================
+   AI DISCOVERY QUESTIONS (space / dock / storage billing)
+   ============================================================ */
+async function getDiscoveryQuestions(){
+  const btn = document.getElementById('discoveryBtn');
+  const outBox = document.getElementById('discoveryOutput');
+  if(!window.cowork || typeof window.cowork.askClaude !== 'function'){
+    outBox.style.display = 'block';
+    outBox.textContent = 'AI discovery questions aren\'t available in this view (window.cowork.askClaude not found). This feature only works when the tool is opened as a Cowork artifact.';
+    return;
+  }
+  const {inp, out} = calc();
+  const sd = lastSpaceDock || computeSpaceDock(inp);
+  const prompt = `You are a senior 3PL/warehouse account manager scoping a new deal before quoting it. You're given the customer's stated inputs and the space/dock/storage numbers a calculator derived from them (some inputs may still be untouched defaults rather than real customer data).
+Respond in plain text (no markdown) with exactly two short sections:
+1) "Ask the customer" - 3 to 4 sharp, specific discovery questions to confirm before locking in space, dock doors, and storage pricing (e.g. pallet dwell time variability, peak season timing/duration, inbound/outbound truck patterns, SKU/pallet footprint, growth plans within the contract term).
+2) "Numbers that look like defaults" - call out which of the provided space/dock inputs look like they may still be unconfirmed placeholder values rather than this customer's real profile, based on how round or generic they look, and say what to verify.
+Keep the whole response under 130 words.`;
+  const data = [{ customer: inp.customerName, warehouse: inp.warehouseName, customerType: inp.customerType, operationType: inp.operationType, seasonality: inp.seasonality, contractLengthMonths: inp.contractLength,
+    storageType: inp.storageType, palletsInMonth: inp.palletsIn, palletsOutMonth: inp.palletsOut, allocatedSqftCurrent: inp.allocatedSqft, dockDoorsCurrent: inp.dockDoors,
+    dwellTimeDays: sd.dwellTimeDays, peakMultiplierPct: sd.peakMultiplierPct, avgPalletsOnHand: sd.avgOnHand, peakPalletsOnHand: sd.peakOnHand,
+    recommendedSqft: sd.recommendedSqft, recommendedDockDoors: sd.recommendedDocks, trucksPerDay: sd.trucksPerDay,
+    targetMarginMin: inp.targetMarginMin, recommendedStorageRatePerPalletMonth: sd.recommendedRatePerPalletMonth }];
+  btn.disabled = true; btn.textContent = 'Thinking…';
+  outBox.style.display = 'block';
+  outBox.textContent = 'Asking...';
+  try {
+    const raw = await window.cowork.askClaude(prompt, data);
+    const text = typeof raw === 'string' ? raw : (raw?.text || raw?.content || JSON.stringify(raw));
+    outBox.textContent = text;
+  } catch(e) {
+    outBox.textContent = 'AI discovery request failed: ' + (e?.message || e);
+  }
+  btn.disabled = false; btn.textContent = '🤖 Get Discovery Questions';
+}
+
 let costChart = null;
 function drawChart(out){
   if(typeof Chart === 'undefined') return;
@@ -1218,7 +1370,8 @@ function drawChart(out){
  'rentPerSqftYr','utilityPerSqftYr','otherOverheadPct','rentActual','utilityActual','equipmentOverhead','laborRatePerHr',
  'receivingMin','putawayMin','pickMin','packMinBase','packMinUnit','loadingMin','laborBurdenPct',
  'marginSlider','targetMarginMin','targetMarginMax','pricingBasis',
- 'benchPalletLow','benchPalletHigh','benchRecvLow','benchRecvHigh','benchPickLow','benchPickHigh'
+ 'benchPalletLow','benchPalletHigh','benchRecvLow','benchRecvHigh','benchPickLow','benchPickHigh',
+ 'dwellTimeDays','peakMultiplierPct','sqftPerPallet','spaceOverheadPct','palletsPerTruck','operatingDaysMonth','dockCapacityPerDoor','storageType'
 ].forEach(id=>{
   const el = document.getElementById(id);
   if(el) el.addEventListener('input', calc);
