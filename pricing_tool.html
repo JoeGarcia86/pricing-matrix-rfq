@@ -1731,15 +1731,38 @@ function calc(){
 /* ============================================================
    AI PRICING ADVISOR (uses window.cowork.askClaude if available)
    ============================================================ */
+function buildStaticPricingAdvice(inp, out){
+  const questions = [];
+  if(!inp.seasonality) questions.push('What\'s the expected seasonality / volume volatility for this account?');
+  if(inp.contractLength && inp.contractLength < 12) questions.push('Why such a short contract term — is this a trial period or a fixed short-term project?');
+  if(out.pricePerPallet>0 && (out.pricePerPallet < inp.benchPalletLow || out.pricePerPallet > inp.benchPalletHigh)) questions.push('Price per pallet falls outside the typical industry range — confirm this customer\'s service mix justifies it.');
+  if(!inp.customerType) questions.push('What type of account is this (retail, e-commerce, manufacturing, etc.) — it\'s not set yet on RFQ Intake.');
+  questions.push('Any SLA commitments (turnaround time, accuracy %) that aren\'t reflected in the cost model yet?');
+  questions.push('Is there room for volume growth that would change the cost-per-unit economics here?');
+
+  let marginNote;
+  if(inp.marginPct < inp.targetMarginMin){
+    marginNote = `Current margin (${inp.marginPct}%) is below your ${inp.targetMarginMin}-${inp.targetMarginMax}% target — consider raising the price or trimming cost drivers before quoting.`;
+  } else if(inp.marginPct > inp.targetMarginMax){
+    marginNote = `Current margin (${inp.marginPct}%) is above target range — good for profitability, but double-check the price is still competitive.`;
+  } else {
+    marginNote = `Current margin (${inp.marginPct}%) is within your ${inp.targetMarginMin}-${inp.targetMarginMax}% target range.`;
+  }
+
+  return `QUESTIONS TO ASK:\n` + questions.slice(0,3).map(q=>'- '+q).join('\n') +
+    `\n\nSUGGESTED MARGIN:\n${marginNote}` +
+    `\n\n(Rule-based check — this view isn't running inside Cowork, so the AI-generated version isn't available here.)`;
+}
+
 async function getAiAdvice(){
   const btn = document.getElementById('aiAdviceBtn');
   const outBox = document.getElementById('aiAdviceOutput');
+  const {inp, out} = calc();
   if(!window.cowork || typeof window.cowork.askClaude !== 'function'){
     outBox.style.display = 'block';
-    outBox.textContent = 'AI advisor isn\'t available in this view (window.cowork.askClaude not found). This feature only works when the tool is opened as a Cowork artifact.';
+    outBox.textContent = buildStaticPricingAdvice(inp, out);
     return;
   }
-  const {inp, out} = calc();
   const prompt = `You are a pricing advisor for a 3PL warehouse operator reviewing one customer quote before it goes out.
 Given the quote inputs and cost breakdown provided as data, respond in plain text (no markdown) with exactly two short sections:
 1) "Questions to ask" - 2 to 3 specific clarifying questions the analyst should ask this customer before finalizing, based on gaps, risk, or unusual figures in the inputs (e.g. seasonality vs contract length, missing SLA detail, unusually high/low volume per sq ft).
@@ -1762,16 +1785,46 @@ Keep the whole response under 120 words.`;
 /* ============================================================
    AI DISCOVERY QUESTIONS (space / dock / storage billing)
    ============================================================ */
+function buildStaticDiscoveryQuestions(inp, sd){
+  const missing = [];
+  if(!(val('dwellTimeDays')>0)) missing.push('Avg Dwell Time per Pallet');
+  if(!(val('peakMultiplierPct')>0)) missing.push('Peak Season Buffer %');
+  if(!(val('sqftPerPallet')>0)) missing.push('Sq Ft per Pallet Position (pick a Storage Type above)');
+  if(!(val('spaceOverheadPct')>0)) missing.push('Extra Space Overhead %');
+  if(!(val('palletsPerTruck')>0)) missing.push('Pallets per Truck');
+  if(!(val('operatingDaysMonth')>0)) missing.push('Operating Days / Month');
+  if(!(val('dockCapacityPerDoor')>0)) missing.push('Dock Throughput (trucks / door / day)');
+  if(!(inp.palletsIn>0)) missing.push('Pallets Received / Month');
+  if(!(inp.palletsOut>0)) missing.push('Pallets Shipped / Month');
+
+  let text = 'ASK THE CUSTOMER:\n';
+  text += '- What\'s the average time a pallet actually sits in storage before it ships, and does that change seasonally?\n';
+  text += '- When does peak season hit, how long does it last, and how much does volume spike above average?\n';
+  text += '- What\'s the inbound/outbound truck pattern — scheduled appointments, or variable daily volume?\n';
+  text += '- Are pallets a standard footprint, or oversized/irregular/mixed SKUs that need extra space?\n';
+  text += '- Any planned volume growth or new SKUs within the contract term that would change space needs?\n';
+  text += '- Does this freight need special handling — climate control, hazmat, or high-value security?\n';
+
+  if(missing.length){
+    text += '\nSTILL MISSING — fill these in before trusting the recommendation above:\n';
+    missing.forEach(m=>{ text += '- ' + m + '\n'; });
+  } else {
+    text += '\nAll calculator inputs are filled in, so the recommendation above reflects real numbers, not placeholders.\n';
+  }
+  text += '\n(Rule-based checklist — this view isn\'t running inside Cowork, so the AI-generated version isn\'t available here.)';
+  return text;
+}
+
 async function getDiscoveryQuestions(){
   const btn = document.getElementById('discoveryBtn');
   const outBox = document.getElementById('discoveryOutput');
-  if(!window.cowork || typeof window.cowork.askClaude !== 'function'){
-    outBox.style.display = 'block';
-    outBox.textContent = 'AI discovery questions aren\'t available in this view (window.cowork.askClaude not found). This feature only works when the tool is opened as a Cowork artifact.';
-    return;
-  }
   const {inp, out} = calc();
   const sd = lastSpaceDock || computeSpaceDock(inp);
+  if(!window.cowork || typeof window.cowork.askClaude !== 'function'){
+    outBox.style.display = 'block';
+    outBox.textContent = buildStaticDiscoveryQuestions(inp, sd);
+    return;
+  }
   const prompt = `You are a senior 3PL/warehouse account manager scoping a new deal before quoting it. You're given the customer's stated inputs and the space/dock/storage numbers a calculator derived from them (some inputs may still be untouched defaults rather than real customer data).
 Respond in plain text (no markdown) with exactly two short sections:
 1) "Ask the customer" - 3 to 4 sharp, specific discovery questions to confirm before locking in space, dock doors, and storage pricing (e.g. pallet dwell time variability, peak season timing/duration, inbound/outbound truck patterns, SKU/pallet footprint, growth plans within the contract term).
