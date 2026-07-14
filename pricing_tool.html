@@ -35,6 +35,8 @@
   }
   input::placeholder, textarea::placeholder { color:var(--muted-faint); }
   input[type=text]:focus, input[type=number]:focus, input[type=date]:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); }
+  .needs-input { border-color:var(--amber) !important; box-shadow:0 0 0 2px rgba(250,204,21,0.35); animation: needsInputPulse 1.4s ease-in-out 2; }
+  @keyframes needsInputPulse { 0%,100% { box-shadow:0 0 0 2px rgba(250,204,21,0.35); } 50% { box-shadow:0 0 0 4px rgba(250,204,21,0.55); } }
   textarea { resize:vertical; min-height:60px; }
   .field { margin-bottom:10px; }
   .row { display:flex; gap:10px; flex-wrap:wrap; }
@@ -2292,18 +2294,38 @@ Keep the whole response under 120 words.`;
 /* ============================================================
    AI DISCOVERY QUESTIONS (space / dock / storage billing)
    ============================================================ */
-function buildStaticDiscoveryQuestions(inp, sd){
-  const missing = [];
-  if(!(val('dwellTimeDays')>0)) missing.push('Avg Dwell Time per Pallet');
-  if(!(val('peakMultiplierPct')>0)) missing.push('Peak Season Buffer %');
-  if(!(val('sqftPerPallet')>0)) missing.push('Sq Ft per Pallet Position (pick a Storage Type above)');
-  if(!(val('spaceOverheadPct')>0)) missing.push('Extra Space Overhead %');
-  if(!(val('palletsPerTruck')>0)) missing.push('Pallets per Truck');
-  if(!(val('operatingDaysMonth')>0)) missing.push('Operating Days / Month');
-  if(!(val('dockCapacityPerDoor')>0)) missing.push('Dock Throughput (trucks / door / day)');
-  if(!(inp.palletsIn>0)) missing.push('Pallets Received / Month');
-  if(!(inp.palletsOut>0)) missing.push('Pallets Shipped / Month');
-
+function getMissingSpaceDockFields(inp){
+  const fields = [
+    { id:'dwellTimeDays', label:'Avg Dwell Time per Pallet', ok: val('dwellTimeDays')>0 },
+    { id:'peakMultiplierPct', label:'Peak Season Buffer %', ok: val('peakMultiplierPct')>0 },
+    { id:'sqftPerPallet', label:'Sq Ft per Pallet Position (pick a Storage Type above)', ok: val('sqftPerPallet')>0 },
+    { id:'spaceOverheadPct', label:'Extra Space Overhead %', ok: val('spaceOverheadPct')>0 },
+    { id:'palletsPerTruck', label:'Pallets per Truck', ok: val('palletsPerTruck')>0 },
+    { id:'operatingDaysMonth', label:'Operating Days / Month', ok: val('operatingDaysMonth')>0 },
+    { id:'dockCapacityPerDoor', label:'Dock Throughput (trucks / door / day)', ok: val('dockCapacityPerDoor')>0 },
+    { id:'palletsIn', label:'Pallets Received / Month', ok: inp.palletsIn>0 },
+    { id:'palletsOut', label:'Pallets Shipped / Month', ok: inp.palletsOut>0 }
+  ];
+  return fields.filter(f=>!f.ok);
+}
+// Puts an amber highlight ring on every still-blank field from the discovery scan, and clears
+// each one's highlight automatically the moment the user fills it in — never touches field values.
+function highlightMissingFields(missing){
+  document.querySelectorAll('.needs-input').forEach(el=>el.classList.remove('needs-input'));
+  missing.forEach(m=>{
+    const el = document.getElementById(m.id);
+    if(!el) return;
+    el.classList.add('needs-input');
+    const clear = ()=>{ el.classList.remove('needs-input'); el.removeEventListener('input', clear); el.removeEventListener('change', clear); };
+    el.addEventListener('input', clear);
+    el.addEventListener('change', clear);
+  });
+  if(missing.length && missing[0].id){
+    const first = document.getElementById(missing[0].id);
+    if(first) first.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+}
+function buildStaticDiscoveryQuestions(inp, sd, missing){
   let text = 'ASK THE CUSTOMER:\n';
   text += '- What\'s the average time a pallet actually sits in storage before it ships, and does that change seasonally?\n';
   text += '- When does peak season hit, how long does it last, and how much does volume spike above average?\n';
@@ -2313,8 +2335,8 @@ function buildStaticDiscoveryQuestions(inp, sd){
   text += '- Does this freight need special handling — climate control, hazmat, or high-value security?\n';
 
   if(missing.length){
-    text += '\nSTILL MISSING — fill these in before trusting the recommendation above:\n';
-    missing.forEach(m=>{ text += '- ' + m + '\n'; });
+    text += '\nSTILL MISSING — highlighted in amber on the form above, fill these in before trusting the recommendation:\n';
+    missing.forEach(m=>{ text += '- ' + m.label + '\n'; });
   } else {
     text += '\nAll calculator inputs are filled in, so the recommendation above reflects real numbers, not placeholders.\n';
   }
@@ -2327,9 +2349,11 @@ async function getDiscoveryQuestions(){
   const outBox = document.getElementById('discoveryOutput');
   const {inp, out} = calc();
   const sd = lastSpaceDock || computeSpaceDock(inp);
+  const missing = getMissingSpaceDockFields(inp);
+  highlightMissingFields(missing);
   if(!window.cowork || typeof window.cowork.askClaude !== 'function'){
     outBox.style.display = 'block';
-    outBox.textContent = buildStaticDiscoveryQuestions(inp, sd);
+    outBox.textContent = buildStaticDiscoveryQuestions(inp, sd, missing);
     return;
   }
   const prompt = `You are a senior 3PL/warehouse account manager scoping a new deal before quoting it. You're given the customer's stated inputs and the space/dock/storage numbers a calculator derived from them (some inputs may still be untouched defaults rather than real customer data).
