@@ -1385,7 +1385,12 @@ function loadPnlCustomersFromHistory(){
   });
   const names = Object.keys(seen);
   if(!names.length){ alert(`No saved quotes for "${key}" yet — save a quote for this facility in Pricing History first, or add customers manually below.`); return; }
-  data.customers = names.map(name=>({ name, sqft: seen[name] }));
+  // Merge: update an existing customer by name, otherwise add it. Never removes existing rows.
+  names.forEach(name=>{
+    const existing = data.customers.find(c=>(c.name||'').trim().toLowerCase() === name.trim().toLowerCase());
+    if(existing){ existing.sqft = seen[name]; }
+    else { data.customers.push({ name, sqft: seen[name] }); }
+  });
   savePnlDataByLocation();
   renderPnlCustomers();
 }
@@ -1432,7 +1437,12 @@ function applyPnlCustomerImport(){
   if(!lastPnlCustomerImportRows.length) return;
   const data = currentPnlLocationData();
   if(!data){ alert('Select a Facility / Location above first.'); return; }
-  data.customers = lastPnlCustomerImportRows.map(r=>({ name: r.name, sqft: r.sqft }));
+  // Merge: update an existing customer by name (case-insensitive), otherwise add it. Never removes existing rows.
+  lastPnlCustomerImportRows.forEach(r=>{
+    const existing = data.customers.find(c=>(c.name||'').trim().toLowerCase() === (r.name||'').trim().toLowerCase());
+    if(existing){ existing.sqft = r.sqft; }
+    else { data.customers.push({ name: r.name, sqft: r.sqft }); }
+  });
   savePnlDataByLocation();
   renderPnlCustomers();
 }
@@ -1508,7 +1518,12 @@ function applyPnlImport(){
   if(!lastPnlImportRows.length) return;
   const data = currentPnlLocationData();
   if(!data){ alert('Select a Facility / Location above first.'); return; }
-  data.lines = lastPnlImportRows.slice();
+  // Merge: update an existing line by label (case-insensitive), otherwise add it. Never removes existing rows.
+  lastPnlImportRows.forEach(r=>{
+    const existing = data.lines.find(l=>(l.label||'').trim().toLowerCase() === (r.label||'').trim().toLowerCase());
+    if(existing){ existing.amount = r.amount; }
+    else { data.lines.push({ label: r.label, amount: r.amount }); }
+  });
   savePnlDataByLocation();
   renderPnlLines();
 }
