@@ -242,6 +242,17 @@
       <button class="btn" onclick="analyzeRfqDocuments()">🔎 Scan Documents for RFQ Data</button>
       <span class="note" id="rfqDocsScanStatus"></span>
     </div>
+
+    <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border);">
+      <div class="flex-between"><strong>Master RFQ Template</strong><span class="note">Most reliable — one field per row, no guessing</span></div>
+      <div class="sub">Download this spreadsheet, fill in the "Your Answer" column, save it, then upload it back here — every field maps directly onto the form below, no scanning/guessing involved.</div>
+      <div class="row" style="gap:8px; align-items:center;">
+        <button class="btn secondary" onclick="downloadMasterRfqTemplate()">⬇️ Download Master RFQ Template (CSV)</button>
+        <input type="file" id="masterRfqFile" accept=".csv,.txt">
+      </div>
+      <div id="masterRfqFileInfo" class="note" style="margin-top:6px;"></div>
+    </div>
+
     <div id="rfqDocsSuggestions" style="margin-top:10px;"></div>
   </div>
 
@@ -1128,6 +1139,119 @@ async function analyzeRfqDocuments(){
   if(statusEl) statusEl.textContent = `Found ${suggestions.length} field${suggestions.length===1?'':'s'}.`;
   renderDocSuggestions(suggestions);
 }
+
+/* ============================================================
+   MASTER RFQ TEMPLATE — download a fill-in-the-blanks CSV, upload it back,
+   and map every row directly onto the matching form field (no guessing).
+   ============================================================ */
+const MASTER_RFQ_FIELDS = [
+  ['salesRep','Sales Rep','free text'],
+  ['regionVp','Regional VP','free text'],
+  ['regionDirector','Regional Director','free text'],
+  ['buildingGm','Building GM','free text'],
+  ['customerName','Customer Name','free text'],
+  ['warehouseName','Warehouse / Facility Name','Must match a UNIS facility name from the tool\'s dropdown exactly, or type a new facility name'],
+  ['quoteDate','Quote Date','YYYY-MM-DD; leave blank to use today\'s date'],
+  ['contractLength','Contract Length (months)','number'],
+  ['customerType','Customer Type','Retail / Big Box | E-commerce / DTC | Manufacturing / Industrial | Food & Beverage | Pharma / Healthcare | Consumer Goods / CPG | Rework / Repack RFQ | Other'],
+  ['operationType','Operation Type','Storage Only | Pick-Pack-Ship / Fulfillment | Cross-Dock | Kitting / Light Assembly | B2B Distribution | Inbound / Rework / Put-away / Outbound | Other'],
+  ['seasonality','Seasonality / Volume Volatility','Low - steady volume | Moderate | High - strong peak season | Projections / Forecast Provided'],
+  ['totalFacilitySqft','Total Facility Sq Ft','number'],
+  ['allocatedSqft','Sq Ft Allocated to This Customer','number'],
+  ['dockDoors','Dock Doors Used','number'],
+  ['palletsIn','Pallets Received / Month','number'],
+  ['palletsOut','Pallets Shipped / Month','number'],
+  ['ordersMonth','Orders / Month','number'],
+  ['linesPerOrder','Avg Lines / Order','number'],
+  ['unitsPerOrder','Avg Units / Order','number'],
+  ['returnsMonth','Returns / Month','number'],
+  ['storageType','Storage Type','Bulk 1 High | Bulk 2 High | Bulk 3-4 High | Bulk 5+ High | Racking Under 60in | Racking Over 60in'],
+  ['dwellTimeDays','Avg Dwell Time per Pallet (days)','number'],
+  ['peakMultiplierPct','Peak Season Buffer %','number'],
+  ['spaceOverheadPct','Extra Space Overhead %','number'],
+  ['palletsPerTruck','Pallets per Truck','number'],
+  ['operatingDaysMonth','Operating Days / Month','number'],
+  ['dockCapacityPerDoor','Dock Throughput (trucks/door/day)','number'],
+  ['rentActual','Actual Monthly Rent Bill (optional)','number'],
+  ['utilityActual','Actual Monthly Utility Bill (optional)','number'],
+  ['scopeNotes','Scope Notes','free text']
+];
+function downloadMasterRfqTemplate(){
+  let csv = 'Field ID,Field,Your Answer,Allowed Values / Format\r\n';
+  MASTER_RFQ_FIELDS.forEach(([id,label,hint])=>{ csv += [id, label, '', hint].join(',') + '\r\n'; });
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'unisco_master_rfq_template.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+// Minimal CSV line splitter that respects quoted fields (so commas inside a filled-in
+// answer, e.g. "Acme, Inc.", don't get mis-split).
+function splitCsvLine(line){
+  const out = []; let cur=''; let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c = line[i];
+    if(inQ){
+      if(c === '"'){ if(line[i+1] === '"'){ cur+='"'; i++; } else { inQ=false; } }
+      else cur += c;
+    } else {
+      if(c === '"') inQ = true;
+      else if(c === ',' ){ out.push(cur); cur=''; }
+      else cur += c;
+    }
+  }
+  out.push(cur);
+  return out.map(s=>s.trim());
+}
+function parseMasterRfqCsv(text){
+  const lines = text.split(/\r?\n/).filter(l=>l.trim().length);
+  const map = {};
+  lines.forEach(line=>{
+    if(/^field ?id\b/i.test(line)) return; // skip header row
+    const parts = splitCsvLine(line);
+    const id = (parts[0]||'').trim();
+    const answer = (parts[2]||'').trim();
+    if(id && answer!=='') map[id] = answer;
+  });
+  return map;
+}
+function buildMasterSheetSuggestions(map){
+  const labelById = {}; MASTER_RFQ_FIELDS.forEach(([id,label])=>{ labelById[id]=label; });
+  const suggestions = [];
+  Object.keys(map).forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return; // unknown field id — ignore rather than guess
+    let value = map[id];
+    let snippet = 'from Master RFQ Template';
+    if(el.tagName === 'SELECT'){
+      const match = Array.from(el.options).find(o=>o.value.trim().toLowerCase() === value.trim().toLowerCase());
+      if(match) value = match.value;
+      else snippet = 'from Master RFQ Template — no exact dropdown match, verify spelling before applying';
+    } else if(el.type === 'number'){
+      const n = parseFloat(String(value).replace(/,/g,''));
+      if(isNaN(n)) return;
+      value = n;
+    }
+    suggestions.push({ field:id, label: labelById[id]||id, value, snippet });
+  });
+  return suggestions;
+}
+handleTextFile('masterRfqFile','masterRfqFileInfo', null, text=>{
+  const map = parseMasterRfqCsv(text);
+  const suggestions = buildMasterSheetSuggestions(map);
+  const infoEl = document.getElementById('masterRfqFileInfo');
+  if(suggestions.length){
+    infoEl.innerHTML = `Found ${suggestions.length} answered field(s) — review below and apply.`;
+    renderDocSuggestions(suggestions);
+  } else {
+    infoEl.innerHTML = 'No answers detected — make sure you filled in the "Your Answer" column and saved the file as CSV.';
+  }
+});
+
 function defaultSowSteps(){
   return [
     { id:'receiving', name:'Receiving', auto:true, autoSource:'receiving', hours:0, cost:0, notes:'' },
