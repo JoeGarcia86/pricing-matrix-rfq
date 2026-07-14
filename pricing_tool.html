@@ -454,6 +454,7 @@
     </table>
     <div class="row" style="margin-top:8px; gap:8px; align-items:center;">
       <button class="btn secondary" onclick="addPnlLine()">+ Add Line Item</button>
+      <button class="btn danger" onclick="removeAllPnlLines()">🗑️ Remove All</button>
       <button class="btn" onclick="saveNowPnlLines()">💾 Save Overhead</button>
       <span class="note" id="pnlLinesSavedNote"></span>
     </div>
@@ -1161,6 +1162,15 @@ function editPnlLineLabel(i, value){ const data=currentPnlLocationData(); if(!da
 function editPnlLineAmount(i, value){ const data=currentPnlLocationData(); if(!data) return; data.lines[i].amount=parseFloat(value)||0; savePnlDataByLocation(); renderPnlLines(); }
 function addPnlLine(){ const data=currentPnlLocationData(); if(!data){ alert('Select a Facility / Location above first.'); return; } data.lines.push({label:'New Line Item', amount:0}); savePnlDataByLocation(); renderPnlLines(); }
 function removePnlLine(i){ const data=currentPnlLocationData(); if(!data) return; data.lines.splice(i,1); savePnlDataByLocation(); renderPnlLines(); }
+function removeAllPnlLines(){
+  const data = currentPnlLocationData();
+  if(!data){ alert('Select a Facility / Location above first.'); return; }
+  if(!data.lines.length) return;
+  if(!confirm(`Remove all ${data.lines.length} overhead line item(s) for this facility? This can't be undone.`)) return;
+  data.lines = [];
+  savePnlDataByLocation();
+  renderPnlLines();
+}
 
 function renderPnlCustomers(){
   const tbody = document.getElementById('pnlCustomersBody');
