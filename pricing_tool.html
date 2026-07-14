@@ -421,20 +421,42 @@
 <!-- ============ TAB 3: FACILITY P&L ============ -->
 <section class="panel" id="panel-facilitypnl">
   <div class="card">
+    <div class="flex-between"><h2 style="margin:0;">Facility / Location</h2><span class="note">Everything below is saved per facility</span></div>
+    <div class="sub">Pick the facility this P&amp;L, sq footage, and customer list belongs to. Each facility's data is stored separately and remembered — switching facilities swaps in that facility's own numbers only, never another location's.</div>
+    <div class="grid">
+      <div class="field">
+        <label>Facility / Location</label>
+        <select id="pnlLocationSelect"><option value="">— Select a UNIS facility —</option></select>
+        <input type="text" id="pnlLocationOtherText" placeholder="Type the facility name..." style="display:none; margin-top:6px;">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
     <div class="flex-between"><h2 style="margin:0;">Facility P&amp;L Import</h2><span class="note">Capture true monthly overhead to know your break-even rate</span></div>
     <div class="sub">Enter or upload the full facility P&amp;L — rent, electricity/lights, water, internet, insurance, maintenance, anything else it costs to run this building — before pricing any customer against it.</div>
     <div class="upload-box">
-      <div><strong>Upload P&amp;L / Overhead Statement</strong> (.csv, .txt work best for auto-detect — one line item per row, label + monthly $ amount; other file types attached as reference only)</div>
+      <div><strong>Upload P&amp;L / Overhead Statement</strong> (.csv or .txt only — auto-detects label + monthly $ amount per row. PDFs and Excel files can't be read directly; they attach as reference only — use "Paste P&amp;L Text" below instead, or export/save the statement as .csv or .txt first.)</div>
       <input type="file" id="pnlFile">
       <div id="pnlInfo" class="note"></div>
       <div id="pnlPreview"></div>
+    </div>
+    <div class="upload-box" style="margin-top:10px;">
+      <div><strong>Or Paste P&amp;L Text</strong> — open the PDF, select all (Ctrl/Cmd+A), copy, and paste the text below. Works for PDFs, emails, or any statement you can't upload directly.</div>
+      <textarea id="pnlPasteText" rows="5" style="width:100%; margin-top:8px; background:var(--card-alt); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:8px; font-family:monospace; font-size:12px;" placeholder="Paste P&amp;L text here, e.g.:&#10;Rent  12,000&#10;Electricity  3,400&#10;Water  600"></textarea>
+      <button class="btn secondary" style="margin-top:8px;" onclick="parsePastedPnlText()">Parse Pasted Text</button>
+      <div id="pnlPasteInfo" class="note" style="margin-top:6px;"></div>
     </div>
     <table style="margin-top:12px;">
       <thead><tr><th>Overhead Line Item</th><th>Monthly $</th><th></th></tr></thead>
       <tbody id="pnlLinesBody"></tbody>
       <tfoot><tr style="font-weight:700; background:var(--card-alt);"><td>Total Monthly Overhead</td><td id="pnlTotalCell" style="text-align:right; padding-right:16px;"></td><td></td></tr></tfoot>
     </table>
-    <button class="btn secondary" style="margin-top:8px;" onclick="addPnlLine()">+ Add Line Item</button>
+    <div class="row" style="margin-top:8px; gap:8px; align-items:center;">
+      <button class="btn secondary" onclick="addPnlLine()">+ Add Line Item</button>
+      <button class="btn" onclick="saveNowPnlLines()">💾 Save Overhead</button>
+      <span class="note" id="pnlLinesSavedNote"></span>
+    </div>
   </div>
 
   <div class="card">
@@ -447,9 +469,11 @@
       <thead><tr><th>Customer</th><th>Sq Ft Allocated</th><th></th></tr></thead>
       <tbody id="pnlCustomersBody"></tbody>
     </table>
-    <div class="row" style="margin-top:8px; gap:8px;">
+    <div class="row" style="margin-top:8px; gap:8px; align-items:center;">
       <button class="btn secondary" onclick="addPnlCustomer()">+ Add Customer</button>
-      <button class="btn secondary" onclick="loadPnlCustomersFromHistory()">↺ Load Customers from Pricing History</button>
+      <button class="btn secondary" onclick="loadPnlCustomersFromHistory()">↺ Load Customers from Pricing History (this facility only)</button>
+      <button class="btn" onclick="saveNowPnlCustomers()">💾 Save Occupancy</button>
+      <span class="note" id="pnlCustomersSavedNote"></span>
     </div>
     <div class="out-cards" id="pnlOccupancyResults" style="margin-top:12px;"></div>
     <div class="note" id="pnlOccupancyNote" style="margin-top:8px;"></div>
@@ -731,7 +755,7 @@ function goTab(name){
   if(name==='history') renderHistory();
   if(name==='addendum') populateAddendumDropdown();
   if(name==='dashboard') renderDashboard();
-  if(name==='facilitypnl'){ renderPnlLines(); renderPnlCustomers(); }
+  if(name==='facilitypnl') renderPnlAll();
 }
 
 /* ============================================================
@@ -1044,78 +1068,166 @@ function defaultPnlLines(){
     {label:'Maintenance / Other', amount:0}
   ];
 }
-let pnlLines = load('unisco_pnl_lines_v1', null) || defaultPnlLines();
-let pnlCustomers = load('unisco_pnl_customers_v1', []);
+// All P&L / occupancy data is keyed by facility so switching locations never mixes numbers.
+let pnlDataByLocation = load('unisco_pnl_by_location_v1', {});
+function savePnlDataByLocation(){ save('unisco_pnl_by_location_v1', pnlDataByLocation); }
+function emptyPnlLocationData(){ return { totalSqft: 0, lines: defaultPnlLines(), customers: [] }; }
+function populatePnlLocationOptions(){
+  const sel = document.getElementById('pnlLocationSelect');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— Select a UNIS facility —</option>' +
+    LOCATIONS.map(loc=>`<option value="${esc(loc.label)}">${esc(loc.label)}</option>`).join('') +
+    '<option value="__other__">Other / Not Listed…</option>';
+}
+function getPnlLocationKey(){
+  const sel = document.getElementById('pnlLocationSelect');
+  if(!sel) return '';
+  if(sel.value === '__other__') return document.getElementById('pnlLocationOtherText').value.trim();
+  return sel.value;
+}
+function currentPnlLocationData(){
+  const key = getPnlLocationKey();
+  if(!key) return null;
+  if(!pnlDataByLocation[key]) pnlDataByLocation[key] = emptyPnlLocationData();
+  return pnlDataByLocation[key];
+}
+function handlePnlLocationChange(){
+  const sel = document.getElementById('pnlLocationSelect');
+  const otherField = document.getElementById('pnlLocationOtherText');
+  otherField.style.display = (sel.value === '__other__') ? 'block' : 'none';
+  save('unisco_pnl_last_location_v1', sel.value);
+  if(sel.value === '__other__') save('unisco_pnl_last_location_other_v1', otherField.value);
+  renderPnlAll();
+}
+document.getElementById('pnlLocationSelect').addEventListener('change', handlePnlLocationChange);
+document.getElementById('pnlLocationOtherText').addEventListener('change', ()=>{
+  save('unisco_pnl_last_location_other_v1', document.getElementById('pnlLocationOtherText').value);
+  renderPnlAll();
+});
+function restorePnlLocationSelection(){
+  const sel = document.getElementById('pnlLocationSelect');
+  if(!sel) return;
+  const lastVal = load('unisco_pnl_last_location_v1', '');
+  if(lastVal === '__other__'){
+    sel.value = '__other__';
+    const otherField = document.getElementById('pnlLocationOtherText');
+    otherField.style.display = 'block';
+    otherField.value = load('unisco_pnl_last_location_other_v1', '');
+    return;
+  }
+  if(lastVal && Array.from(sel.options).some(o=>o.value===lastVal)){ sel.value = lastVal; return; }
+  // nothing remembered yet — default to whatever facility is active on RFQ Intake, if any
+  const currentWarehouse = getWarehouseName();
+  if(currentWarehouse && Array.from(sel.options).some(o=>o.value===currentWarehouse)) sel.value = currentWarehouse;
+}
 
-function savePnlLines(){ save('unisco_pnl_lines_v1', pnlLines); }
-function savePnlCustomers(){ save('unisco_pnl_customers_v1', pnlCustomers); }
+function renderPnlTotalSqft(){
+  const el = document.getElementById('pnlTotalSqft');
+  if(!el) return;
+  const data = currentPnlLocationData();
+  el.value = data && data.totalSqft ? data.totalSqft : '';
+  el.disabled = !data;
+}
+document.getElementById('pnlTotalSqft').addEventListener('input', ()=>{
+  const data = currentPnlLocationData();
+  if(!data) return;
+  data.totalSqft = parseFloat(document.getElementById('pnlTotalSqft').value) || 0;
+  savePnlDataByLocation();
+  renderPnlOccupancy();
+});
 
 function renderPnlLines(){
   const tbody = document.getElementById('pnlLinesBody');
+  const cell = document.getElementById('pnlTotalCell');
   if(!tbody) return;
-  tbody.innerHTML = pnlLines.map((l,i)=>`
+  const data = currentPnlLocationData();
+  if(!data){
+    tbody.innerHTML = `<tr><td colspan="3" class="note">Select a Facility / Location above to enter or view its overhead.</td></tr>`;
+    if(cell) cell.textContent = '';
+    renderPnlOccupancy();
+    return;
+  }
+  tbody.innerHTML = data.lines.map((l,i)=>`
     <tr>
-      <td><input type="text" value="${esc(l.label)}" onchange="pnlLines[${i}].label=this.value; savePnlLines();"></td>
-      <td><input type="number" value="${l.amount||0}" onchange="pnlLines[${i}].amount=parseFloat(this.value)||0; savePnlLines(); renderPnlLines();"></td>
+      <td><input type="text" value="${esc(l.label)}" onchange="editPnlLineLabel(${i}, this.value)"></td>
+      <td><input type="number" value="${l.amount||0}" onchange="editPnlLineAmount(${i}, this.value)"></td>
       <td><button class="btn danger" style="padding:3px 8px;font-size:11px;" onclick="removePnlLine(${i})">✕</button></td>
     </tr>`).join('');
-  const total = pnlLines.reduce((s,l)=>s+(parseFloat(l.amount)||0),0);
-  const cell = document.getElementById('pnlTotalCell');
+  const total = data.lines.reduce((s,l)=>s+(parseFloat(l.amount)||0),0);
   if(cell) cell.textContent = fmt$(total);
   renderPnlOccupancy();
-  return total;
 }
-function addPnlLine(){ pnlLines.push({label:'New Line Item', amount:0}); savePnlLines(); renderPnlLines(); }
-function removePnlLine(i){ pnlLines.splice(i,1); savePnlLines(); renderPnlLines(); }
+function editPnlLineLabel(i, value){ const data=currentPnlLocationData(); if(!data) return; data.lines[i].label=value; savePnlDataByLocation(); }
+function editPnlLineAmount(i, value){ const data=currentPnlLocationData(); if(!data) return; data.lines[i].amount=parseFloat(value)||0; savePnlDataByLocation(); renderPnlLines(); }
+function addPnlLine(){ const data=currentPnlLocationData(); if(!data){ alert('Select a Facility / Location above first.'); return; } data.lines.push({label:'New Line Item', amount:0}); savePnlDataByLocation(); renderPnlLines(); }
+function removePnlLine(i){ const data=currentPnlLocationData(); if(!data) return; data.lines.splice(i,1); savePnlDataByLocation(); renderPnlLines(); }
 
 function renderPnlCustomers(){
   const tbody = document.getElementById('pnlCustomersBody');
   if(!tbody) return;
-  tbody.innerHTML = pnlCustomers.map((c,i)=>`
+  const data = currentPnlLocationData();
+  if(!data){
+    tbody.innerHTML = `<tr><td colspan="3" class="note">Select a Facility / Location above to enter or view its customers.</td></tr>`;
+    renderPnlOccupancy();
+    return;
+  }
+  tbody.innerHTML = data.customers.map((c,i)=>`
     <tr>
-      <td><input type="text" value="${esc(c.name)}" placeholder="Customer name" onchange="pnlCustomers[${i}].name=this.value; savePnlCustomers();"></td>
-      <td><input type="number" value="${c.sqft||0}" onchange="pnlCustomers[${i}].sqft=parseFloat(this.value)||0; savePnlCustomers(); renderPnlOccupancy();"></td>
+      <td><input type="text" value="${esc(c.name)}" placeholder="Customer name" onchange="editPnlCustomerName(${i}, this.value)"></td>
+      <td><input type="number" value="${c.sqft||0}" onchange="editPnlCustomerSqft(${i}, this.value)"></td>
       <td><button class="btn danger" style="padding:3px 8px;font-size:11px;" onclick="removePnlCustomer(${i})">✕</button></td>
     </tr>`).join('');
   renderPnlOccupancy();
 }
-function addPnlCustomer(){ pnlCustomers.push({name:'', sqft:0}); savePnlCustomers(); renderPnlCustomers(); }
-function removePnlCustomer(i){ pnlCustomers.splice(i,1); savePnlCustomers(); renderPnlCustomers(); }
+function editPnlCustomerName(i, value){ const data=currentPnlLocationData(); if(!data) return; data.customers[i].name=value; savePnlDataByLocation(); }
+function editPnlCustomerSqft(i, value){ const data=currentPnlLocationData(); if(!data) return; data.customers[i].sqft=parseFloat(value)||0; savePnlDataByLocation(); renderPnlOccupancy(); }
+function addPnlCustomer(){ const data=currentPnlLocationData(); if(!data){ alert('Select a Facility / Location above first.'); return; } data.customers.push({name:'', sqft:0}); savePnlDataByLocation(); renderPnlCustomers(); }
+function removePnlCustomer(i){ const data=currentPnlLocationData(); if(!data) return; data.customers.splice(i,1); savePnlDataByLocation(); renderPnlCustomers(); }
 
 function loadPnlCustomersFromHistory(){
+  const data = currentPnlLocationData();
+  const key = getPnlLocationKey();
+  if(!data || !key){ alert('Select a Facility / Location above first.'); return; }
   const seen = {};
   history.forEach(h=>{
-    const name = h.inputs && h.inputs.customerName;
+    if((h.inputs && h.inputs.warehouseName) !== key) return; // only this facility's saved quotes
+    const name = h.inputs.customerName;
     if(!name) return;
     seen[name] = h.inputs.allocatedSqft || 0; // last saved quote per customer wins
   });
   const names = Object.keys(seen);
-  if(!names.length){ alert('No saved quotes yet — save a quote in Pricing History first, or add customers manually below.'); return; }
-  pnlCustomers = names.map(name=>({ name, sqft: seen[name] }));
-  savePnlCustomers();
+  if(!names.length){ alert(`No saved quotes for "${key}" yet — save a quote for this facility in Pricing History first, or add customers manually below.`); return; }
+  data.customers = names.map(name=>({ name, sqft: seen[name] }));
+  savePnlDataByLocation();
   renderPnlCustomers();
 }
 
 function renderPnlOccupancy(){
-  const totalSqft = val('pnlTotalSqft');
-  const totalOverhead = pnlLines.reduce((s,l)=>s+(parseFloat(l.amount)||0),0);
-  const allocatedSqft = pnlCustomers.reduce((s,c)=>s+(parseFloat(c.sqft)||0),0);
+  const el = document.getElementById('pnlOccupancyResults');
+  const note = document.getElementById('pnlOccupancyNote');
+  const data = currentPnlLocationData();
+  if(!data){
+    if(el) el.innerHTML = '';
+    if(note) note.textContent = 'Select a Facility / Location above to see occupancy and break-even math for that facility.';
+    return;
+  }
+  const totalSqft = data.totalSqft || 0;
+  const totalOverhead = data.lines.reduce((s,l)=>s+(parseFloat(l.amount)||0),0);
+  const allocatedSqft = data.customers.reduce((s,c)=>s+(parseFloat(c.sqft)||0),0);
   const freeSqft = Math.max(0, totalSqft - allocatedSqft);
   const occupancyPct = totalSqft>0 ? (allocatedSqft/totalSqft*100) : 0;
   const breakEvenPerSqftTotal = totalSqft>0 ? totalOverhead/totalSqft : 0;
   const breakEvenPerSqftAllocated = allocatedSqft>0 ? totalOverhead/allocatedSqft : 0;
   const vacantCostMonth = freeSqft * breakEvenPerSqftTotal;
-  const el = document.getElementById('pnlOccupancyResults');
   if(!el) return;
   el.innerHTML = `
-    <div class="out-card"><div class="val">${pnlCustomers.length}</div><div class="lbl">Customers</div></div>
+    <div class="out-card"><div class="val">${data.customers.length}</div><div class="lbl">Customers</div></div>
     <div class="out-card"><div class="val">${fmtNum(allocatedSqft)}</div><div class="lbl">Sq Ft Allocated</div></div>
     <div class="out-card"><div class="val">${fmtNum(freeSqft)}</div><div class="lbl">Sq Ft Free / Vacant</div></div>
     <div class="out-card"><div class="val">${occupancyPct.toFixed(1)}%</div><div class="lbl">Occupancy</div></div>
     <div class="out-card"><div class="val">${fmt$(breakEvenPerSqftTotal)}</div><div class="lbl">Break-Even $/Sq Ft/Month (whole facility)</div></div>
     <div class="out-card"><div class="val">${fmt$(breakEvenPerSqftAllocated)}</div><div class="lbl">Break-Even $/Sq Ft/Month (occupied only)</div></div>
   `;
-  const note = document.getElementById('pnlOccupancyNote');
   if(!note) return;
   if(totalSqft<=0){
     note.textContent = 'Enter Total Facility Sq Ft above to see occupancy and break-even math.';
@@ -1124,6 +1236,11 @@ function renderPnlOccupancy(){
   } else {
     note.textContent = 'Facility is fully allocated — break-even rates above match.';
   }
+}
+function renderPnlAll(){
+  renderPnlTotalSqft();
+  renderPnlLines();
+  renderPnlCustomers();
 }
 
 let lastPnlImportRows = [];
@@ -1149,16 +1266,49 @@ handleTextFile('pnlFile','pnlInfo','pnlPreview', text=>{
     lastPnlImportRows = rows;
     infoEl.innerHTML += `<div>Detected ${rows.length} overhead line item(s) totaling ${fmt$(rows.reduce((s,r)=>s+r.amount,0))} — <button class="btn secondary" style="padding:3px 8px;font-size:11px;" onclick="applyPnlImport()">Apply to Overhead Table</button></div>`;
   } else {
-    infoEl.innerHTML += `<div>File loaded — no $ figures auto-detected. See preview below and enter values manually.</div>`;
+    infoEl.innerHTML += `<div>File loaded — no $ figures auto-detected (this is normal for PDFs/Excel — try "Paste P&amp;L Text" above instead). See preview below and enter values manually.</div>`;
   }
 });
 function applyPnlImport(){
   if(!lastPnlImportRows.length) return;
-  pnlLines = lastPnlImportRows.slice();
-  savePnlLines();
+  const data = currentPnlLocationData();
+  if(!data){ alert('Select a Facility / Location above first.'); return; }
+  data.lines = lastPnlImportRows.slice();
+  savePnlDataByLocation();
   renderPnlLines();
 }
-document.getElementById('pnlTotalSqft').addEventListener('input', renderPnlOccupancy);
+function parsePastedPnlText(){
+  const text = document.getElementById('pnlPasteText').value;
+  const infoEl = document.getElementById('pnlPasteInfo');
+  if(!text || !text.trim()){ infoEl.textContent = 'Paste some text first.'; return; }
+  const rows = parsePnlFile(text);
+  if(rows.length){
+    lastPnlImportRows = rows;
+    infoEl.innerHTML = `Detected ${rows.length} overhead line item(s) totaling ${fmt$(rows.reduce((s,r)=>s+r.amount,0))} — <button class="btn secondary" style="padding:3px 8px;font-size:11px;" onclick="applyPnlImport()">Apply to Overhead Table</button>`;
+  } else {
+    infoEl.textContent = 'No $ figures detected in that text. Make sure each line has a label and a number (e.g. "Rent 12,000"), or enter values manually below.';
+  }
+}
+function saveNowPnlLines(){
+  const data = currentPnlLocationData();
+  const note = document.getElementById('pnlLinesSavedNote');
+  if(!data){ alert('Select a Facility / Location above first.'); return; }
+  savePnlDataByLocation();
+  if(note){
+    note.textContent = '✓ Saved ' + new Date().toLocaleTimeString();
+    setTimeout(()=>{ if(note.textContent.indexOf('Saved')>-1) note.textContent=''; }, 4000);
+  }
+}
+function saveNowPnlCustomers(){
+  const data = currentPnlLocationData();
+  const note = document.getElementById('pnlCustomersSavedNote');
+  if(!data){ alert('Select a Facility / Location above first.'); return; }
+  savePnlDataByLocation();
+  if(note){
+    note.textContent = '✓ Saved ' + new Date().toLocaleTimeString();
+    setTimeout(()=>{ if(note.textContent.indexOf('Saved')>-1) note.textContent=''; }, 4000);
+  }
+}
 
 /* ============================================================
    CUSTOMER VOLUME PROJECTIONS (shown when Seasonality = "Projections / Forecast Provided")
@@ -1919,8 +2069,9 @@ function init(){
   renderHistory();
   populateAddendumDropdown();
   renderDashboard();
-  renderPnlLines();
-  renderPnlCustomers();
+  populatePnlLocationOptions();
+  restorePnlLocationSelection();
+  renderPnlAll();
   calc();
 }
 window.addEventListener('load', ()=>{
