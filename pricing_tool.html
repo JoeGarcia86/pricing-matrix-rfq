@@ -247,6 +247,17 @@
     </div>
   </div>
 
+  <div class="card" id="projectionsCard" style="display:none;">
+    <div class="flex-between"><h2 style="margin:0;">Customer-Provided Volume Projections</h2><span class="note">Shown because Seasonality = "Projections / Forecast Provided"</span></div>
+    <div class="sub">Upload the forecast the customer gave you — one row per period, with columns for pallets in/out and orders (.csv or .txt work best for auto-detect; other file types are attached as reference only). We'll price each period against your current Cost &amp; Margin and Regional Benchmark inputs.</div>
+    <div class="upload-box">
+      <input type="file" id="projectionsFile" accept=".csv,.txt">
+      <div id="projectionsInfo" class="note"></div>
+      <div id="projectionsPreview"></div>
+    </div>
+    <div id="projectionsResults"></div>
+  </div>
+
   <div class="card">
     <h2>Building Specs</h2>
     <div class="sub">Enter facility details, or upload a spec sheet below to auto-detect square footage and cost figures.</div>
@@ -285,17 +296,6 @@
       <div class="field"><label>Avg Units / Order</label><input type="number" id="unitsPerOrder" value="5"></div>
       <div class="field"><label>Returns / Month</label><input type="number" id="returnsMonth" value="120"></div>
     </div>
-  </div>
-
-  <div class="card" id="projectionsCard" style="display:none;">
-    <div class="flex-between"><h2 style="margin:0;">Customer-Provided Volume Projections</h2><span class="note">Shown because Seasonality = "Projections / Forecast Provided"</span></div>
-    <div class="sub">Upload the forecast the customer gave you — one row per period, with columns for pallets in/out and orders (.csv or .txt work best for auto-detect; other file types are attached as reference only). We'll price each period against your current Cost &amp; Margin and Regional Benchmark inputs.</div>
-    <div class="upload-box">
-      <input type="file" id="projectionsFile" accept=".csv,.txt">
-      <div id="projectionsInfo" class="note"></div>
-      <div id="projectionsPreview"></div>
-    </div>
-    <div id="projectionsResults"></div>
   </div>
 
   <div class="card">
