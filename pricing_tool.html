@@ -139,6 +139,7 @@
   <button data-tab="history">5. Pricing History</button>
   <button data-tab="addendum">6. SOW Addendum</button>
   <button data-tab="export">7. Export</button>
+  <button data-tab="directory">8. Team Directory</button>
 </nav>
 
 <main>
@@ -218,6 +219,7 @@
       <a class="qn-tile" onclick="goTab('history')"><span class="qn-icon">🗂️</span>Pricing History</a>
       <a class="qn-tile" onclick="goTab('addendum')"><span class="qn-icon">📄</span>SOW Addendum</a>
       <a class="qn-tile" onclick="goTab('export')"><span class="qn-icon">📊</span>Export</a>
+      <a class="qn-tile" onclick="goTab('directory')"><span class="qn-icon">🧑‍💼</span>Team Directory</a>
     </div>
   </div>
 </section>
@@ -225,13 +227,23 @@
 <!-- ============ TAB 1: RFQ INTAKE ============ -->
 <section class="panel" id="panel-rfq">
 
-  <div class="card" style="padding:12px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-    <div class="note">This RFQ draft auto-saves every 30 seconds in this browser, so a refresh won't lose your work.</div>
-    <div class="row" style="gap:8px; align-items:center;">
-      <span class="note" id="draftSavedNote"></span>
-      <button class="btn secondary" onclick="saveDraftNow()">💾 Save Draft Now</button>
-      <button class="btn danger" onclick="clearDraftQuote()">🆕 New Quote</button>
+  <div class="card" style="padding:12px 16px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+      <div class="row" style="gap:14px; align-items:center;">
+        <div><span class="note">RFQ ID</span><div style="font-weight:700; font-size:14px; color:var(--navy);" id="rfqIdDisplay">—</div></div>
+        <input type="text" id="rfqId" readonly style="display:none;">
+        <div style="min-width:240px;">
+          <label style="margin-bottom:2px;">Open an In-Progress RFQ</label>
+          <select id="openRfqSelect" onchange="openRfqById(this.value)"><option value="">— Current draft —</option></select>
+        </div>
+      </div>
+      <div class="row" style="gap:8px; align-items:center;">
+        <span class="note" id="draftSavedNote"></span>
+        <button class="btn secondary" onclick="saveDraftNow()">💾 Save Draft Now</button>
+        <button class="btn danger" onclick="clearDraftQuote()">🆕 New Quote</button>
+      </div>
     </div>
+    <div class="note">This RFQ draft auto-saves every 30 seconds in this browser under its own RFQ ID, so a refresh — or switching to a different RFQ — won't lose your work.</div>
   </div>
 
   <div class="card" id="rfqSectionScope">
@@ -268,6 +280,17 @@
           <option>Low - steady volume</option><option>Moderate</option><option>High - strong peak season</option><option>Projections / Forecast Provided</option>
         </select>
       </div>
+    </div>
+    <div class="flex-between" style="margin-top:10px;">
+      <h2 style="margin:0; font-size:13px;">Deal Team</h2>
+      <span class="note" style="cursor:pointer; text-decoration:underline;" onclick="applyDirectoryDefaults(true)">↻ Refresh names from Team Directory</span>
+    </div>
+    <div class="sub">Auto-fills from the Team Directory tab based on the Region / Market and Warehouse / Facility selected above — edit here to override just this quote.</div>
+    <div class="grid3">
+      <div class="field"><label>Sales Rep</label><input type="text" id="salesRep" placeholder="e.g. Jane Smith"></div>
+      <div class="field"><label>Regional VP</label><input type="text" id="regionVp" placeholder="e.g. John Doe"></div>
+      <div class="field"><label>Regional Director</label><input type="text" id="regionDirector" placeholder="e.g. Alex Lee"></div>
+      <div class="field"><label>Building GM</label><input type="text" id="buildingGm" placeholder="e.g. Pat Rivera"></div>
     </div>
   </div>
 
@@ -601,7 +624,7 @@
       <input type="text" id="historySearch" placeholder="Search by customer or warehouse..." oninput="renderHistory()" style="max-width:280px;">
     </div>
     <table>
-      <thead><tr><th>Date</th><th>Customer</th><th>Warehouse</th><th>Region</th><th>Rev #</th><th>$/Pallet</th><th>$/Order</th><th>Margin %</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th>RFQ ID</th><th>Date</th><th>Customer</th><th>Warehouse</th><th>Region</th><th>Rev #</th><th>$/Pallet</th><th>$/Order</th><th>Margin %</th><th>Status</th><th></th></tr></thead>
       <tbody id="historyBody"></tbody>
     </table>
   </div>
@@ -654,6 +677,27 @@
     </div>
     <div class="note" style="margin-top:10px;" id="exportStatus"></div>
   </div>
+</section>
+
+<!-- ============ TAB 8: TEAM DIRECTORY ============ -->
+<section class="panel" id="panel-directory">
+  <div class="card">
+    <div class="flex-between"><h2 style="margin:0;">Regional Leadership</h2><span class="note">VP &amp; Director per region</span></div>
+    <div class="sub">Auto-fills onto each RFQ's Deal Team section based on the Region / Market selected on RFQ Intake. Edit below and Save — this never deletes an existing RFQ's saved names, only changes what new/refreshed quotes pull in.</div>
+    <table>
+      <thead><tr><th>Region</th><th>VP</th><th>Director</th></tr></thead>
+      <tbody id="directoryRegionBody"></tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="flex-between"><h2 style="margin:0;">Building Leadership</h2><span class="note">GM &amp; Sales Rep per facility</span></div>
+    <div class="sub">Auto-fills onto each RFQ's Deal Team section based on the Warehouse / Facility Name selected on RFQ Intake.</div>
+    <table>
+      <thead><tr><th>Facility</th><th>GM</th><th>Sales Rep</th></tr></thead>
+      <tbody id="directoryBuildingBody"></tbody>
+    </table>
+  </div>
+  <button class="btn" onclick="saveTeamDirectory()">💾 Save Team Directory</button>
 </section>
 
 </main>
@@ -765,6 +809,118 @@ const STATE_TO_REGION = {
 
 let vendorRows = load('unisco_vendor_actuals_v1', []);
 let history = load('unisco_pricing_history_v1', []);
+/* ============================================================
+   TEAM DIRECTORY (Region -> VP/Director, Building -> GM/Sales Rep)
+   ============================================================ */
+let teamDirectory = load('unisco_team_directory_v1', { regions:{}, buildings:{} });
+if(!teamDirectory.regions) teamDirectory.regions = {};
+if(!teamDirectory.buildings) teamDirectory.buildings = {};
+function renderTeamDirectory(){
+  const rtbody = document.getElementById('directoryRegionBody');
+  if(rtbody){
+    rtbody.innerHTML = Object.keys(REGIONS).map(key=>{
+      const r = teamDirectory.regions[key] || {};
+      return `<tr>
+        <td>${esc(REGIONS[key].label)}</td>
+        <td><input type="text" data-region="${esc(key)}" data-field="vp" value="${esc(r.vp||'')}" placeholder="VP name" onchange="collectTeamDirectoryFromForm()"></td>
+        <td><input type="text" data-region="${esc(key)}" data-field="director" value="${esc(r.director||'')}" placeholder="Director name" onchange="collectTeamDirectoryFromForm()"></td>
+      </tr>`;
+    }).join('');
+  }
+  const btbody = document.getElementById('directoryBuildingBody');
+  if(btbody){
+    btbody.innerHTML = LOCATIONS.map(loc=>{
+      const b = teamDirectory.buildings[loc.label] || {};
+      return `<tr>
+        <td>${esc(loc.label)}</td>
+        <td><input type="text" data-building="${esc(loc.label)}" data-field="gm" value="${esc(b.gm||'')}" placeholder="GM name" onchange="collectTeamDirectoryFromForm()"></td>
+        <td><input type="text" data-building="${esc(loc.label)}" data-field="salesRep" value="${esc(b.salesRep||'')}" placeholder="Sales Rep name" onchange="collectTeamDirectoryFromForm()"></td>
+      </tr>`;
+    }).join('');
+  }
+}
+function collectTeamDirectoryFromForm(){
+  document.querySelectorAll('#directoryRegionBody input').forEach(inp=>{
+    const key = inp.dataset.region, field = inp.dataset.field;
+    if(!teamDirectory.regions[key]) teamDirectory.regions[key] = {};
+    teamDirectory.regions[key][field] = inp.value;
+  });
+  document.querySelectorAll('#directoryBuildingBody input').forEach(inp=>{
+    const key = inp.dataset.building, field = inp.dataset.field;
+    if(!teamDirectory.buildings[key]) teamDirectory.buildings[key] = {};
+    teamDirectory.buildings[key][field] = inp.value;
+  });
+}
+function saveTeamDirectory(){
+  collectTeamDirectoryFromForm();
+  save('unisco_team_directory_v1', teamDirectory);
+  applyDirectoryDefaults();
+  alert('Team Directory saved.');
+}
+// force=true overrides fields that already have a value (used by the explicit "Refresh" link/save);
+// otherwise only fills fields that are currently blank, so it never clobbers a manual override.
+function applyDirectoryDefaults(force){
+  const whKey = getWarehouseName();
+  const bld = teamDirectory.buildings[whKey];
+  const gmEl = document.getElementById('buildingGm');
+  const repEl = document.getElementById('salesRep');
+  if(bld){
+    if(gmEl && (force || !gmEl.value)) gmEl.value = bld.gm || gmEl.value;
+    if(repEl && (force || !repEl.value)) repEl.value = bld.salesRep || repEl.value;
+  }
+  const regionKey = document.getElementById('region')?.value;
+  const reg = teamDirectory.regions[regionKey];
+  const vpEl = document.getElementById('regionVp');
+  const dirEl = document.getElementById('regionDirector');
+  if(reg){
+    if(vpEl && (force || !vpEl.value)) vpEl.value = reg.vp || vpEl.value;
+    if(dirEl && (force || !dirEl.value)) dirEl.value = reg.director || dirEl.value;
+  }
+}
+/* ============================================================
+   RFQ ID (date + daily sequence, e.g. RFQ-2026-07-14-001)
+   ============================================================ */
+function nextRfqId(){
+  const now = new Date();
+  const dateKey = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+  const seq = load('unisco_rfq_seq_v1', {});
+  const n = (seq[dateKey]||0) + 1;
+  seq[dateKey] = n;
+  save('unisco_rfq_seq_v1', seq);
+  return `RFQ-${dateKey}-${String(n).padStart(3,'0')}`;
+}
+function ensureRfqId(){
+  const idEl = document.getElementById('rfqId');
+  if(idEl && !idEl.value) idEl.value = nextRfqId();
+  syncRfqIdDisplay();
+}
+function syncRfqIdDisplay(){
+  const idEl = document.getElementById('rfqId');
+  const disp = document.getElementById('rfqIdDisplay');
+  if(disp) disp.textContent = (idEl && idEl.value) || '—';
+}
+/* Per-RFQ full data store, keyed by RFQ ID — never overwritten wholesale, only the
+   current RFQ's own entry is set on each save. Lets multiple in-progress RFQs coexist
+   without one overwriting another the way a single shared draft slot would. */
+let quotesById = load('unisco_quotes_v1', {});
+function renderOpenRfqOptions(){
+  const sel = document.getElementById('openRfqSelect');
+  if(!sel) return;
+  const currentId = document.getElementById('rfqId')?.value || '';
+  const ids = Object.keys(quotesById).sort().reverse();
+  sel.innerHTML = '<option value="">— Current draft —</option>' + ids.map(id=>{
+    const q = quotesById[id];
+    const label = `${id} — ${q.inputs?.customerName || 'Unnamed'}${q.inputs?.warehouseName ? ' / ' + q.inputs.warehouseName : ''}`;
+    return `<option value="${esc(id)}" ${id===currentId?'selected':''}>${esc(label)}</option>`;
+  }).join('');
+}
+function openRfqById(id){
+  if(!id) return;
+  saveDraftNow(); // persist whatever is currently on screen under its own RFQ ID before switching away
+  const snap = quotesById[id];
+  if(!snap){ alert('Could not find that RFQ.'); return; }
+  loadSnapshotIntoForm(snap);
+}
 function defaultSowSteps(){
   return [
     { id:'receiving', name:'Receiving', auto:true, autoSource:'receiving', hours:0, cost:0, notes:'' },
@@ -949,6 +1105,7 @@ function applyRegionDefaults(){
   document.getElementById('regionBadge1').textContent = r.label;
   document.getElementById('regionBadge2').textContent = r.label;
   renderRegionTable();
+  if(typeof teamDirectory !== 'undefined') applyDirectoryDefaults();
   calc();
 }
 document.getElementById('region').addEventListener('change', applyRegionDefaults);
@@ -988,6 +1145,7 @@ function handleWarehouseChange(){
     document.getElementById('region').value = regionKey;
     applyRegionDefaults();
   }
+  applyDirectoryDefaults();
 }
 document.getElementById('warehouseName').addEventListener('change', handleWarehouseChange);
 document.getElementById('warehouseNameOtherText').addEventListener('input', calc);
@@ -1653,6 +1811,11 @@ handleTextFile('projectionsFile','projectionsInfo','projectionsPreview', onProje
    ============================================================ */
 function getInputs(){
   return {
+    rfqId: document.getElementById('rfqId').value,
+    salesRep: document.getElementById('salesRep').value,
+    regionVp: document.getElementById('regionVp').value,
+    regionDirector: document.getElementById('regionDirector').value,
+    buildingGm: document.getElementById('buildingGm').value,
     customerName: document.getElementById('customerName').value,
     warehouseName: getWarehouseName(),
     quoteDate: document.getElementById('quoteDate').value,
@@ -2028,12 +2191,19 @@ function collectDraftSnapshot(){
   return { inputs: inp, extra, sowSteps, savedAt: new Date().toISOString() };
 }
 function saveDraftNow(){
-  save('unisco_draft_quote_v1', collectDraftSnapshot());
+  ensureRfqId();
+  const snap = collectDraftSnapshot();
+  save('unisco_draft_quote_v1', snap); // pointer/cache for "last active draft on this browser"
+  if(snap.inputs && snap.inputs.rfqId){
+    // Only this RFQ's own entry is written — every other saved RFQ in quotesById is untouched.
+    quotesById[snap.inputs.rfqId] = snap;
+    save('unisco_quotes_v1', quotesById);
+  }
   const note = document.getElementById('draftSavedNote');
   if(note) note.textContent = 'Last saved ' + new Date().toLocaleTimeString();
+  renderOpenRfqOptions();
 }
-function restoreDraftQuote(){
-  const draft = load('unisco_draft_quote_v1', null);
+function loadSnapshotIntoForm(draft){
   if(!draft || !draft.inputs) return false;
   const inp = draft.inputs;
   Object.keys(inp).forEach(k=>{
@@ -2054,9 +2224,19 @@ function restoreDraftQuote(){
   }
   if(draft.sowSteps && draft.sowSteps.length) sowSteps = draft.sowSteps;
   toggleProjectionsSection();
+  ensureRfqId();
+  applyDirectoryDefaults();
+  renderOpenRfqOptions();
+  calc();
+  return true;
+}
+function restoreDraftQuote(){
+  const draft = load('unisco_draft_quote_v1', null);
+  if(!draft || !draft.inputs) return false;
+  const ok = loadSnapshotIntoForm(draft);
   const note = document.getElementById('draftSavedNote');
   if(note && draft.savedAt) note.textContent = 'Restored draft from ' + new Date(draft.savedAt).toLocaleString();
-  return true;
+  return ok;
 }
 function clearDraftQuote(){
   if(!confirm('Clear this draft and start a new blank RFQ? Anything not saved to Pricing History will be lost.')) return;
@@ -2089,6 +2269,7 @@ function renderHistory(){
   const filtered = history.filter(h => !q || (h.inputs.customerName||'').toLowerCase().includes(q) || (h.inputs.warehouseName||'').toLowerCase().includes(q));
   tbody.innerHTML = filtered.map(h=>`
     <tr>
+      <td>${esc(h.inputs.rfqId||'—')}</td>
       <td>${(h.inputs.quoteDate||h.savedAt.slice(0,10))}</td>
       <td>${esc(h.inputs.customerName)}</td>
       <td>${esc(h.inputs.warehouseName)}</td>
@@ -2104,13 +2285,15 @@ function renderHistory(){
         <button class="btn secondary" onclick="loadQuote('${h.id}')">Load</button>
         <button class="btn danger" onclick="deleteQuote('${h.id}')">Delete</button>
       </td>
-    </tr>`).join('') || '<tr><td colspan="10" class="note">No saved quotes yet.</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="11" class="note">No saved quotes yet.</td></tr>';
 }
 function setStatus(id, status){ const h = history.find(x=>x.id===id); if(h){ h.status=status; save('unisco_pricing_history_v1', history); } }
 function deleteQuote(id){ if(!confirm('Delete this saved quote?')) return; history = history.filter(x=>x.id!==id); save('unisco_pricing_history_v1', history); renderHistory(); }
 function loadQuote(id){
   const h = history.find(x=>x.id===id); if(!h) return;
+  saveDraftNow(); // persist whatever RFQ is currently on screen under its own RFQ ID first, so it isn't lost
   const inp = h.inputs;
+  document.getElementById('rfqId').value = inp.rfqId || ''; // explicit: don't inherit the previously-open RFQ's ID
   Object.keys(inp).forEach(k=>{
     const el = document.getElementById(k);
     if(el && el.type!=='file') el.value = inp[k];
@@ -2124,6 +2307,9 @@ function loadQuote(id){
   }
   handleWarehouseChange();
   document.getElementById('marginSlider').value = inp.marginPct;
+  ensureRfqId(); // assigns a fresh RFQ ID only if this historical record predates the RFQ ID feature
+  applyDirectoryDefaults();
+  renderOpenRfqOptions();
   goTab('rfq');
   calc();
   alert('Quote loaded into the form. Edit and re-save to create a revision, or use the SOW Addendum tab.');
@@ -2418,7 +2604,11 @@ function init(){
   renderRegionTable();
   renderVendorTable();
   applyRegionDefaults();
+  renderTeamDirectory();
   restoreDraftQuote();
+  ensureRfqId();
+  applyDirectoryDefaults();
+  renderOpenRfqOptions();
   renderHistory();
   populateAddendumDropdown();
   renderDashboard();
