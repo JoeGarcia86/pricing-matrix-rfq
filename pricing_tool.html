@@ -192,12 +192,20 @@
     </div>
   </div>
 
-  <div class="card">
-    <div class="flex-between"><h2 style="margin:0;">Recent Activity</h2><span class="note">Last 8 saved quotes</span></div>
-    <table>
-      <thead><tr><th>Date</th><th>Customer</th><th>Warehouse</th><th>Region</th><th>$/Pallet</th><th>Margin %</th><th>Status</th><th></th></tr></thead>
-      <tbody id="dashboardRecentBody"></tbody>
-    </table>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:20px; align-items:start;">
+    <div class="card">
+      <div class="flex-between"><h2 style="margin:0;">Recent Activity</h2><span class="note">Last 8 saved quotes</span></div>
+      <table>
+        <thead><tr><th>Date</th><th>Customer</th><th>Warehouse</th><th>Region</th><th>$/Pallet</th><th>Margin %</th><th>Status</th><th></th></tr></thead>
+        <tbody id="dashboardRecentBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="flex-between"><h2 style="margin:0;">Facility Overview</h2><span class="note">P&amp;L &amp; occupancy, saved per facility</span></div>
+      <div class="sub">Every facility with overhead or occupancy entered on the Facility P&amp;L tab shows up here automatically, and stays saved as you update it.</div>
+      <div id="dashboardFacilityOverview" style="margin-top:8px;"></div>
+    </div>
   </div>
 
   <div class="card">
@@ -823,6 +831,47 @@ function renderDashboard(){
       <td>${statusPill(h.status)}</td>
       <td><button class="btn secondary" style="padding:3px 8px;font-size:11px;" onclick="loadQuote('${h.id}')">Load</button></td>
     </tr>`).join('') || '<tr><td colspan="8" class="note">No saved quotes yet — build one on the RFQ Intake tab.</td></tr>';
+
+  renderDashboardFacilityOverview();
+}
+
+function renderDashboardFacilityOverview(){
+  const el = document.getElementById('dashboardFacilityOverview');
+  if(!el) return;
+  const keys = Object.keys(pnlDataByLocation||{}).filter(k=>{
+    const d = pnlDataByLocation[k];
+    return d && (d.totalSqft>0 || (d.lines||[]).some(l=>(parseFloat(l.amount)||0)>0) || (d.customers||[]).length>0);
+  });
+  if(!keys.length){
+    el.innerHTML = '<div class="note">No facilities have P&L or occupancy data yet — fill these in on the Facility P&L tab and they\'ll show up here automatically.</div>';
+    return;
+  }
+  el.innerHTML = `<table>
+    <thead><tr><th>Facility</th><th>Sq Ft</th><th>Free</th><th>Occ.</th><th>Overhead/Mo</th><th></th></tr></thead>
+    <tbody>${keys.map(k=>{
+      const d = pnlDataByLocation[k];
+      const totalSqft = d.totalSqft || 0;
+      const totalOverhead = (d.lines||[]).reduce((s,l)=>s+(parseFloat(l.amount)||0),0);
+      const allocatedSqft = (d.customers||[]).reduce((s,c)=>s+(parseFloat(c.sqft)||0),0);
+      const freeSqft = Math.max(0, totalSqft - allocatedSqft);
+      const occPct = totalSqft>0 ? (allocatedSqft/totalSqft*100) : 0;
+      return `<tr>
+        <td>${esc(k)}</td>
+        <td>${fmtNum(totalSqft)}</td>
+        <td>${fmtNum(freeSqft)}</td>
+        <td>${occPct.toFixed(0)}%</td>
+        <td>${fmt$(totalOverhead)}</td>
+        <td><button class="btn secondary" style="padding:3px 8px;font-size:11px;" data-pnlkey="${esc(k)}" onclick="goToFacilityPnl(this.dataset.pnlkey)">Manage</button></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+function goToFacilityPnl(key){
+  goTab('facilitypnl');
+  const sel = document.getElementById('pnlLocationSelect');
+  if(!sel) return;
+  const exists = Array.from(sel.options).some(o=>o.value===key);
+  if(exists){ sel.value = key; handlePnlLocationChange(); }
 }
 
 /* ============================================================
