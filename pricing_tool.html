@@ -650,7 +650,8 @@
     <h2>Stored Pricing History</h2>
     <div class="sub">Every saved quote is stored by customer + warehouse + date, with the full input set and resulting price, so you can trace back exactly how any price was built.</div>
     <div class="row" style="margin-bottom:10px;">
-      <input type="text" id="historySearch" placeholder="Search by customer or warehouse..." oninput="renderHistory()" style="max-width:280px;">
+      <input type="text" id="historySearch" placeholder="Search by customer or warehouse..." autocomplete="off" oninput="renderHistory()" style="max-width:280px;">
+      <button class="btn secondary" style="margin-left:8px;" onclick="document.getElementById('historySearch').value=''; renderHistory();">Clear search</button>
     </div>
     <table>
       <thead><tr><th>RFQ ID</th><th>Date</th><th>Customer</th><th>Warehouse</th><th>Region</th><th>Rev #</th><th>$/Pallet</th><th>$/Order</th><th>Margin %</th><th>Status</th><th></th></tr></thead>
@@ -2638,7 +2639,11 @@ function renderHistory(){
         <button class="btn secondary" onclick="loadQuote('${h.id}')">Load</button>
         <button class="btn danger" onclick="deleteQuote('${h.id}')">Delete</button>
       </td>
-    </tr>`).join('') || '<tr><td colspan="11" class="note">No saved quotes yet.</td></tr>';
+    </tr>`).join('') || (
+      history.length
+        ? `<tr><td colspan="11" class="note">No saved quotes match "${esc(q)}" — ${history.length} quote${history.length===1?'':'s'} saved in total. <button class="btn secondary" style="padding:2px 8px; font-size:11px;" onclick="document.getElementById('historySearch').value=''; renderHistory();">Clear search</button></td></tr>`
+        : '<tr><td colspan="11" class="note">No saved quotes yet.</td></tr>'
+    );
 }
 function setStatus(id, status){ const h = history.find(x=>x.id===id); if(h){ h.status=status; save('unisco_pricing_history_v1', history); } }
 function deleteQuote(id){ if(!confirm('Delete this saved quote?')) return; history = history.filter(x=>x.id!==id); save('unisco_pricing_history_v1', history); renderHistory(); }
